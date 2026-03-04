@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles } from 'lucide-react';
+import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe } from 'lucide-react';
 
-// --- PWA DYNAMIC SETUP ---
+// --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
   const meta = [
     { name: 'apple-mobile-web-app-capable', content: 'yes' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-    { name: 'apple-mobile-web-app-title', content: 'VocabES' },
+    { name: 'apple-mobile-web-app-title', content: 'Vocab Pro' },
     { name: 'mobile-web-app-capable', content: 'yes' },
-    { name: 'theme-color', content: '#4f46e5' }
+    { name: 'theme-color', content: '#0F172A' }
   ];
+  
   meta.forEach(({ name, content }) => {
     let el = document.querySelector(`meta[name="${name}"]`);
     if (!el) {
@@ -19,35 +20,96 @@ const setupPWA = () => {
     }
     el.content = content;
   });
+
+  const iconSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+      <rect x="64" y="64" width="896" height="896" rx="220" fill="#0F172A"/>
+      <rect x="232" y="320" width="560" height="120" rx="60" fill="#E5E7EB"/>
+      <rect x="232" y="452" width="560" height="120" rx="60" fill="#3B82F6"/>
+      <rect x="232" y="584" width="560" height="120" rx="60" fill="#E5E7EB"/>
+    </svg>
+  `;
+
+  const iconBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
+  const iconUrl = URL.createObjectURL(iconBlob);
+
+  const manifest = {
+    name: 'Vocab Pro',
+    short_name: 'VocabPro',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#0F172A',
+    theme_color: '#3B82F6',
+    icons: [{
+      src: iconUrl,
+      sizes: '1024x1024',
+      type: 'image/svg+xml',
+      purpose: 'any maskable'
+    }]
+  };
+
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const manifestURL = URL.createObjectURL(manifestBlob);
+  
+  let link = document.querySelector('link[rel="manifest"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'manifest';
+    document.head.appendChild(link);
+  }
+  link.href = manifestURL;
 };
 
+// Mappa delle lingue supportate
+const LANGUAGES_MAP = {
+  es: { name: 'Spagnolo', flag: '🇪🇸', code: 'es' },
+  en: { name: 'Inglese', flag: '🇬🇧', code: 'en' },
+  fr: { name: 'Francese', flag: '🇫🇷', code: 'fr' },
+  tr: { name: 'Turco', flag: '🇹🇷', code: 'tr' }
+};
+
+// Componente per l'icona SVG personalizzata
+const AppIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" className={className}>
+    <rect x="64" y="64" width="896" height="896" rx="220" fill="#0F172A"/>
+    <rect x="232" y="320" width="560" height="120" rx="60" fill="#E5E7EB"/>
+    <rect x="232" y="452" width="560" height="120" rx="60" fill="#3B82F6"/>
+    <rect x="232" y="584" width="560" height="120" rx="60" fill="#E5E7EB"/>
+  </svg>
+);
+
 export default function App() {
-  // Caricamento iniziale dal LocalStorage
-  const [words, setWords] = useState(() => {
-    const saved = localStorage.getItem('vocab_words_local');
-    return saved ? JSON.parse(saved) : [];
+  const [selectedLang, setSelectedLang] = useState(() => {
+    return localStorage.getItem('vocab_pro_lang') || 'es';
   });
-  
+
+  const [words, setWords] = useState([]);
   const [inputPhrase, setInputPhrase] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLowFreq, setShowLowFreq] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [activePopupWord, setActivePopupWord] = useState(null);
   
   const textareaRef = useRef(null);
 
-  // Effetto per il salvataggio automatico ogni volta che 'words' cambia
   useEffect(() => {
-    localStorage.setItem('vocab_words_local', JSON.stringify(words));
-  }, [words]);
+    const saved = localStorage.getItem(`vocab_words_${selectedLang}`);
+    setWords(saved ? JSON.parse(saved) : []);
+    localStorage.setItem('vocab_pro_lang', selectedLang);
+    setSearchQuery("");
+  }, [selectedLang]);
+
+  useEffect(() => {
+    localStorage.setItem(`vocab_words_${selectedLang}`, JSON.stringify(words));
+  }, [words, selectedLang]);
 
   useEffect(() => {
     setupPWA();
   }, []);
 
-  // Gestione Autocompletamento
   useEffect(() => {
     const lastWord = inputPhrase.split(/[\s,.]+/).pop().toLowerCase();
     if (lastWord.length > 1) {
@@ -60,6 +122,17 @@ export default function App() {
     }
   }, [inputPhrase, words]);
 
+  useEffect(() => {
+    if (searchQuery.length > 1) {
+      const matches = words
+        .filter(w => w.term.startsWith(searchQuery.toLowerCase()))
+        .slice(0, 3);
+      setSearchSuggestions(matches);
+    } else {
+      setSearchSuggestions([]);
+    }
+  }, [searchQuery, words]);
+
   const applySuggestion = (fullWord) => {
     const parts = inputPhrase.split(/\s+/);
     parts[parts.length - 1] = fullWord + " ";
@@ -68,12 +141,17 @@ export default function App() {
     if (textareaRef.current) textareaRef.current.focus();
   };
 
+  const applySearchSuggestion = (fullWord) => {
+    setSearchQuery(fullWord);
+    setSearchSuggestions([]);
+  };
+
   const translateWord = async (word) => {
     try {
-      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=es|it`);
+      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${selectedLang}|it`);
       const data = await response.json();
       return data.responseData.translatedText || "Significato non trovato";
-    } catch { return "Errore di connessione"; }
+    } catch { return "Errore API"; }
   };
 
   const handleAnalysis = async () => {
@@ -87,18 +165,19 @@ export default function App() {
     
     const uniqueWords = [...new Set(cleanedWords)];
     let newWords = [...words];
-    let lastFound = null;
+    let lastToPop = null;
 
     for (const word of uniqueWords) {
       const existingIdx = newWords.findIndex(w => w.term === word);
       
       if (existingIdx > -1) {
+        const updatedFreq = newWords[existingIdx].frequency + 1;
         newWords[existingIdx] = {
           ...newWords[existingIdx],
-          frequency: newWords[existingIdx].frequency + 1,
+          frequency: updatedFreq,
           lastUpdated: new Date().toISOString()
         };
-        lastFound = { term: word, meaning: newWords[existingIdx].meaning };
+        if (updatedFreq <= 10) lastToPop = { term: word, meaning: newWords[existingIdx].meaning };
       } else {
         const meaning = await translateWord(word);
         const newEntry = {
@@ -109,26 +188,32 @@ export default function App() {
           lastUpdated: new Date().toISOString()
         };
         newWords.push(newEntry);
-        lastFound = { term: word, meaning: meaning };
+        lastToPop = { term: word, meaning: meaning };
       }
     }
 
     setWords(newWords);
-    if (lastFound) setActivePopupWord(lastFound);
+    if (lastToPop) setActivePopupWord(lastToPop);
     setInputPhrase("");
     setIsAnalyzing(false);
   };
 
   const handleIncrement = (id) => {
+    const wordObj = words.find(w => w.id === id);
+    if (!wordObj) return;
+
+    const newFreq = wordObj.frequency + 1;
     const newWords = words.map(w => {
       if (w.id === id) {
-        const updated = { ...w, frequency: w.frequency + 1, lastUpdated: new Date().toISOString() };
-        setActivePopupWord({ term: w.term, meaning: w.meaning });
-        return updated;
+        return { ...w, frequency: newFreq, lastUpdated: new Date().toISOString() };
       }
       return w;
     });
+
     setWords(newWords);
+    if (newFreq <= 10) {
+      setActivePopupWord({ term: wordObj.term, meaning: wordObj.meaning });
+    }
   };
 
   const handleDecrement = (id) => {
@@ -152,64 +237,93 @@ export default function App() {
   const lowFreq = filteredList.filter(w => w.frequency < 3);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 pb-36 font-sans overflow-x-hidden">
-      <header className="bg-emerald-600 pt-10 pb-6 px-6 text-white shadow-lg sticky top-0 z-30 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Languages className="w-6 h-6" /> VocabES Offline
-          </h1>
-          <p className="text-emerald-100 text-[10px] uppercase tracking-widest font-semibold">Salvataggio Locale nel Browser</p>
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 pb-44 font-sans overflow-x-hidden">
+      {/* Header - Navy Background (#0F172A) */}
+      <header className="bg-[#0F172A] pt-12 pb-6 px-6 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
+        <div className="flex justify-between items-center w-full">
+          <div className="flex items-center gap-3">
+            {/* Visualizzazione Icona SVG nell'Header */}
+            <div className="w-12 h-12 flex items-center justify-center drop-shadow-md">
+              <AppIcon className="w-full h-full" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight leading-none uppercase">Vocab Pro</h1>
+              <p className="text-blue-400 text-[9px] font-bold uppercase tracking-widest mt-1">Language Lab</p>
+            </div>
+          </div>
+          <button onClick={() => setShowInstallGuide(true)} className="p-2.5 bg-slate-800 rounded-full active:scale-90 transition-all text-blue-400 border border-slate-700">
+            <Download size={18} />
+          </button>
         </div>
-        <button onClick={() => setShowInstallGuide(true)} className="p-2 bg-emerald-500 rounded-full active:scale-90 transition-all">
-          <Download size={18} />
-        </button>
+
+        <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-2xl border border-slate-700">
+          {Object.entries(LANGUAGES_MAP).map(([key, lang]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedLang(key)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-1 rounded-xl text-[10px] font-black uppercase transition-all ${
+                selectedLang === key 
+                ? 'bg-[#3B82F6] text-white shadow-lg' 
+                : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>{lang.flag}</span>
+              <span className="hidden xs:inline">{lang.name}</span>
+            </button>
+          ))}
+        </div>
       </header>
 
       <main className="p-4 flex-1 max-w-lg mx-auto w-full space-y-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-4 pb-1">
+        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-5 pb-1">
             <textarea
               ref={textareaRef}
-              placeholder="Escribe una frase..."
-              className="w-full bg-slate-50 rounded-xl p-3 border-none focus:ring-0 text-lg resize-none outline-none h-28"
+              placeholder={`Scrivi una frase in ${LANGUAGES_MAP[selectedLang].name.toLowerCase()}...`}
+              className="w-full bg-slate-50 rounded-2xl p-4 border-none focus:ring-0 text-lg resize-none outline-none h-32"
               value={inputPhrase}
               onChange={(e) => setInputPhrase(e.target.value)}
             />
           </div>
 
-          <div className="h-12 bg-white border-t border-slate-100 flex items-center px-2 gap-2 overflow-x-auto no-scrollbar">
+          <div className="h-12 bg-white border-t border-slate-100 flex items-center px-4 gap-2 overflow-x-auto no-scrollbar">
             {suggestions.length > 0 ? (
               suggestions.map(s => (
                 <button
                   key={s.id}
                   onClick={() => applySuggestion(s.term)}
-                  className="whitespace-nowrap bg-emerald-50 text-emerald-600 text-sm font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 border border-emerald-100 active:bg-emerald-200"
+                  className="whitespace-nowrap bg-blue-50 text-blue-600 text-[11px] font-black uppercase px-4 py-2 rounded-full flex items-center gap-1.5 border border-blue-100 active:bg-blue-200"
                 >
-                  <Sparkles size={14} />
+                  <Sparkles size={12} className="text-blue-400" />
                   {s.term}
                 </button>
               ))
             ) : (
-              <span className="text-xs text-slate-300 ml-2 italic">Scrivi per suggerimenti...</span>
+              <span className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Suggerimenti attivi</span>
             )}
           </div>
 
-          <div className="p-2">
+          <div className="p-3">
             <button
               onClick={handleAnalysis}
               disabled={isAnalyzing || !inputPhrase.trim()}
-              className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-emerald-100"
+              className="w-full bg-[#3B82F6] text-white font-black uppercase text-xs tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-blue-100"
             >
               {isAnalyzing ? <Loader2 className="animate-spin" /> : <Plus size={20} />}
-              Analizza e Mostra Significati
+              Analizza Dizionario
             </button>
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-2 px-1 text-slate-400">
-            <BarChart2 size={16} />
-            <span className="text-xs font-bold uppercase">Il Tuo Vocabolario</span>
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2 text-slate-400">
+              <BarChart2 size={16} className="text-blue-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Dizionario {LANGUAGES_MAP[selectedLang].name}</span>
+            </div>
+            <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">
+              {words.length} Parole
+            </span>
           </div>
           
           <div className="space-y-2">
@@ -220,12 +334,12 @@ export default function App() {
 
           {lowFreq.length > 0 && (
             <div className="pt-2">
-              <button onClick={() => setShowLowFreq(!showLowFreq)} className="flex items-center justify-between w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-500 text-sm font-medium">
-                <span>Altre parole ({lowFreq.length})</span>
+              <button onClick={() => setShowLowFreq(!showLowFreq)} className="flex items-center justify-between w-full p-4 bg-white border border-slate-200 rounded-2xl text-slate-500 text-xs font-bold uppercase tracking-wider">
+                <span>Parole meno studiate ({lowFreq.length})</span>
                 {showLowFreq ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               {showLowFreq && (
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 space-y-2 animate-in fade-in slide-in-from-top-2">
                   {lowFreq.map(w => (
                     <SwipeableCard key={w.id} item={w} onDecrement={() => handleDecrement(w.id)} onIncrement={() => handleIncrement(w.id)} />
                   ))}
@@ -236,33 +350,49 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 pb-10 z-40">
-        <div className="max-w-lg mx-auto relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder="Filtra il tuo dizionario..."
-            className="w-full bg-slate-100 rounded-2xl py-3 pl-12 pr-4 border-none focus:ring-2 focus:ring-emerald-500 outline-none"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 pb-12 z-40">
+        <div className="max-w-lg mx-auto space-y-2">
+          {searchSuggestions.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+              {searchSuggestions.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => applySearchSuggestion(s.term)}
+                  className="whitespace-nowrap bg-slate-100 text-slate-700 text-[10px] font-black uppercase px-3 py-1.5 rounded-xl border border-slate-200"
+                >
+                  {s.term}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Filtra il tuo dizionario..."
+              className="w-full bg-slate-100 rounded-[1.5rem] py-4 pl-14 pr-6 border-none focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 placeholder:text-slate-400 font-medium"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
       </footer>
 
       {activePopupWord && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[60] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-emerald-600">
-              <BookOpen size={32} />
+        <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[60] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 border-t-[12px] border-blue-500">
+            <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto text-blue-600 shadow-inner">
+              <BookOpen size={48} />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-xs font-black text-emerald-500 uppercase tracking-widest">Significato Trovato</h2>
-              <div className="text-4xl font-black text-slate-800 capitalize leading-tight">{activePopupWord.term}</div>
-              <p className="text-2xl text-slate-600 font-medium italic">"{activePopupWord.meaning}"</p>
+            <div className="space-y-3">
+              <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Memoria Attiva</h2>
+              <div className="text-4xl font-black text-slate-900 capitalize leading-tight tracking-tight">{activePopupWord.term}</div>
+              <div className="h-px bg-slate-100 w-12 mx-auto"></div>
+              <p className="text-2xl text-slate-500 font-bold italic tracking-tight">"{activePopupWord.meaning}"</p>
             </div>
             <button 
               onClick={() => setActivePopupWord(null)}
-              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg active:scale-95 transition-all"
+              className="w-full py-5 bg-[#0F172A] text-white rounded-[1.5rem] font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-2xl shadow-blue-900/40"
             >
               Ho capito
             </button>
@@ -271,17 +401,28 @@ export default function App() {
       )}
 
       {showInstallGuide && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-6 space-y-4 animate-in slide-in-from-bottom duration-300">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Installa l'App</h2>
-              <button onClick={() => setShowInstallGuide(false)}><X /></button>
+        <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 space-y-6 animate-in slide-in-from-bottom duration-300 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#0F172A] flex items-center justify-center">
+                   <Plus size={20} className="text-white" />
+                </div>
+                <h2 className="text-xl font-black text-[#0F172A] uppercase tracking-tighter">Installa</h2>
+              </div>
+              <button onClick={() => setShowInstallGuide(false)} className="text-slate-300 p-2 hover:text-slate-600"><X /></button>
             </div>
-            <p className="text-sm text-slate-500 italic">I tuoi dati vengono salvati localmente su questo browser.</p>
-            <div className="space-y-2">
-              <div className="p-3 bg-slate-50 rounded-xl text-xs"><strong>iOS:</strong> Condividi &rarr; Aggiungi a Home</div>
-              <div className="p-3 bg-slate-50 rounded-xl text-xs"><strong>Android:</strong> Menu &rarr; Installa</div>
+            <div className="space-y-4">
+              <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-xs flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black shrink-0">iOS</div>
+                <p className="font-bold text-slate-600 tracking-tight">Safari &rarr; <Globe size={14} className="inline mx-1"/> Condividi &rarr; <strong>Aggiungi a Home</strong></p>
+              </div>
+              <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-xs flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-black shrink-0">AND</div>
+                <p className="font-bold text-slate-600 tracking-tight">Chrome &rarr; Menu &rarr; <strong>Installa App</strong></p>
+              </div>
             </div>
+            <button onClick={() => setShowInstallGuide(false)} className="w-full py-5 bg-[#0F172A] text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-lg">Continua</button>
           </div>
         </div>
       )}
@@ -292,54 +433,73 @@ export default function App() {
 function SwipeableCard({ item, onDecrement, onIncrement }) {
   const [offset, setOffset] = useState(0);
   const startX = useRef(0);
+  const isDragging = useRef(false);
   const threshold = 80;
 
+  const handleStart = (clientX) => {
+    startX.current = clientX;
+    isDragging.current = true;
+  };
+
+  const handleMove = (clientX) => {
+    if (!isDragging.current) return;
+    const diff = clientX - startX.current;
+    setOffset(diff);
+  };
+
+  const handleEnd = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    if (offset < -threshold) {
+      if (item.frequency <= 1) {
+        setOffset(-window.innerWidth);
+        setTimeout(onDecrement, 200);
+      } else {
+        onDecrement();
+        setOffset(0);
+      }
+    } else if (offset > threshold) {
+      onIncrement();
+      setOffset(0);
+    } else {
+      setOffset(0);
+    }
+  };
+
   return (
-    <div className="relative overflow-hidden rounded-xl bg-slate-200">
-      <div className={`absolute inset-y-0 right-0 w-full flex items-center justify-end px-6 text-white transition-colors ${item.frequency <= 1 ? 'bg-red-600' : 'bg-orange-500'}`}>
+    <div className="relative overflow-hidden rounded-[1.5rem] bg-slate-200 shadow-sm border border-slate-100">
+      <div className="absolute inset-y-0 right-0 w-full bg-red-600 flex items-center justify-end px-8 text-white transition-opacity">
         <div className="flex flex-col items-center">
-          {item.frequency <= 1 ? <Trash2 size={20} /> : <MinusCircle size={20} />}
-          <span className="text-[9px] font-bold uppercase mt-1">
-            {item.frequency <= 1 ? 'Elimina' : '-1 Freq'}
+          {item.frequency <= 1 ? <Trash2 size={24} /> : <MinusCircle size={24} />}
+          <span className="text-[10px] font-black uppercase mt-2 tracking-widest">
+            {item.frequency <= 1 ? 'Elimina' : '-1'}
           </span>
         </div>
       </div>
-      <div className="absolute inset-y-0 left-0 w-full bg-emerald-500 flex items-center justify-start px-6 text-white">
+
+      <div className="absolute inset-y-0 left-0 w-full bg-emerald-500 flex items-center justify-start px-8 text-white">
         <div className="flex flex-col items-center">
-          <CheckCircle2 size={20} />
-          <span className="text-[9px] font-bold uppercase mt-1">+1 Freq</span>
+          <CheckCircle2 size={24} />
+          <span className="text-[10px] font-black uppercase mt-2 tracking-widest">+1</span>
         </div>
       </div>
+
       <div 
-        className="relative bg-white border border-slate-200 p-4 flex justify-between items-center shadow-sm transition-transform duration-200 ease-out touch-pan-y"
+        className="relative bg-white p-5 flex justify-between items-center transition-transform duration-200 ease-out touch-pan-y cursor-grab active:cursor-grabbing"
         style={{ transform: `translateX(${offset}px)` }}
-        onTouchStart={(e) => { startX.current = e.touches[0].clientX; }}
-        onTouchMove={(e) => {
-          const diff = e.touches[0].clientX - startX.current;
-          setOffset(diff);
-        }}
-        onTouchEnd={() => {
-          if (offset < -threshold) {
-            if (item.frequency <= 1) {
-              setOffset(-500);
-              setTimeout(onDecrement, 200);
-            } else {
-              onDecrement();
-              setOffset(0);
-            }
-          } else if (offset > threshold) {
-            onIncrement();
-            setOffset(0);
-          } else {
-            setOffset(0);
-          }
-        }}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+        onTouchMove={(e) => handleMove(e.touches[0].clientX)}
+        onTouchEnd={handleEnd}
+        onMouseDown={(e) => handleStart(e.clientX)}
+        onMouseMove={(e) => handleMove(e.clientX)}
+        onMouseUp={handleEnd}
+        onMouseLeave={handleEnd}
       >
-        <div className="select-none flex-1">
-          <h3 className="font-bold text-slate-800 text-lg capitalize">{item.term}</h3>
-          <p className="text-slate-500 text-sm italic">{item.meaning}</p>
+        <div className="select-none flex-1 pr-4">
+          <h3 className="font-black text-slate-800 text-lg capitalize tracking-tight leading-tight">{item.term}</h3>
+          <p className="text-slate-400 text-sm font-medium italic leading-tight mt-1">"{item.meaning}"</p>
         </div>
-        <div className="bg-emerald-50 text-emerald-700 w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border border-emerald-100 shadow-inner">
+        <div className="bg-blue-50 text-[#3B82F6] w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border border-blue-100 shadow-inner shrink-0 transition-transform active:scale-90">
           {item.frequency}
         </div>
       </div>
