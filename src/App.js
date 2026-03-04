@@ -6,13 +6,81 @@ const setupPWA = () => {
   // Lasciamo che index.html gestisca le icone statiche
 };
 
-// Mappa delle lingue supportate aggiornata
+// Mappa delle traduzioni dell'interfaccia (I18n)
+const UI_STRINGS = {
+  es: {
+    subtitle: "Laboratorio de Idiomas",
+    placeholder: "Escribe una frase en español...",
+    btnAnalyze: "Analizar Diccionario",
+    dictLabel: "Diccionario",
+    words: "Palabras",
+    lessUsed: "Menos estudiadas",
+    searchPlaceholder: "Filtrar diccionario...",
+    popupTitle: "Memoria Activa",
+    popupButton: "Entendido",
+    install: "Instalar",
+    autoType: "Escritura asistida"
+  },
+  en: {
+    subtitle: "Language Lab",
+    placeholder: "Write a sentence in English...",
+    btnAnalyze: "Analyze Dictionary",
+    dictLabel: "Dictionary",
+    words: "Words",
+    lessUsed: "Less studied",
+    searchPlaceholder: "Filter dictionary...",
+    popupTitle: "Active Memory",
+    popupButton: "Got it",
+    install: "Install",
+    autoType: "Smart typing"
+  },
+  fr: {
+    subtitle: "Labo de Langues",
+    placeholder: "Écrivez une phrase en français...",
+    btnAnalyze: "Analyser le dictionnaire",
+    dictLabel: "Dictionnaire",
+    words: "Mots",
+    lessUsed: "Moins étudiés",
+    searchPlaceholder: "Filtrer le dictionnaire...",
+    popupTitle: "Mémoire Active",
+    popupButton: "J'ai compris",
+    install: "Installer",
+    autoType: "Saisie assistée"
+  },
+  it: {
+    subtitle: "Laboratorio Linguistico",
+    placeholder: "Scrivi una frase in italiano...",
+    btnAnalyze: "Analizza Dizionario",
+    dictLabel: "Dizionario",
+    words: "Parole",
+    lessUsed: "Meno studiate",
+    searchPlaceholder: "Filtra il dizionario...",
+    popupTitle: "Memoria Attiva",
+    popupButton: "Ho capito",
+    install: "Installa",
+    autoType: "Scrittura assistita"
+  },
+  tr: {
+    subtitle: "Dil Laboratuvarı",
+    placeholder: "Türkçe bir cümle yazın...",
+    btnAnalyze: "Sözlüğü Analiz Et",
+    dictLabel: "Sözlük",
+    words: "Kelime",
+    lessUsed: "Daha az çalışılanlar",
+    searchPlaceholder: "Sözlükte filtrele...",
+    popupTitle: "Aktif Bellek",
+    popupButton: "Anladım",
+    install: "Yükle",
+    autoType: "Destekli yazım"
+  }
+};
+
 const LANGUAGES_MAP = {
-  es: { name: 'Spagnolo', flag: '🇪🇸', code: 'es' },
-  en: { name: 'Inglese', flag: '🇬🇧', code: 'en' },
-  fr: { name: 'Francese', flag: '🇫🇷', code: 'fr' },
+  es: { name: 'Español', flag: '🇪🇸', code: 'es' },
+  en: { name: 'English', flag: '🇬🇧', code: 'en' },
+  fr: { name: 'Français', flag: '🇫🇷', code: 'fr' },
   it: { name: 'Italiano', flag: '🇮🇹', code: 'it' },
-  tr: { name: 'Turco', flag: '🇹🇷', code: 'tr' }
+  tr: { name: 'Türkçe', flag: '🇹🇷', code: 'tr' }
 };
 
 const AppIcon = ({ className }) => (
@@ -39,6 +107,7 @@ export default function App() {
   const [locationData, setLocationData] = useState(null);
   
   const textareaRef = useRef(null);
+  const t = UI_STRINGS[selectedLang] || UI_STRINGS.en;
 
   // Inizializzazione PWA, Tema e Geolocalizzazione
   useEffect(() => {
@@ -51,13 +120,17 @@ export default function App() {
         const data = await response.json();
         setLocationData(data);
 
-        // Se è la prima volta, imposta lingua dal paese
+        // Se è la prima volta assoluta, imposta lingua dal paese
         if (!localStorage.getItem('vocab_pro_lang')) {
           const mapping = { 'ES': 'es', 'GB': 'en', 'US': 'en', 'FR': 'fr', 'IT': 'it', 'TR': 'tr' };
-          if (mapping[data.country_code]) setSelectedLang(mapping[data.country_code]);
+          if (mapping[data.country_code]) {
+            const lang = mapping[data.country_code];
+            setSelectedLang(lang);
+            localStorage.setItem('vocab_pro_lang', lang);
+          }
         }
         
-        // Auto Dark Mode se è sera (fallback se non impostato manualmente)
+        // Auto Dark Mode se è sera
         const hour = new Date().getHours();
         if ((hour >= 20 || hour <= 7) && !localStorage.getItem('vocab_pro_theme')) {
           setIsDarkMode(true);
@@ -69,7 +142,7 @@ export default function App() {
     initApp();
   }, []);
 
-  // Sync Lingua e Parole
+  // Sincronizzazione Lingua e Parole
   useEffect(() => {
     const saved = localStorage.getItem(`vocab_words_${selectedLang}`);
     setWords(saved ? JSON.parse(saved) : []);
@@ -84,7 +157,7 @@ export default function App() {
     localStorage.setItem('vocab_pro_theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
-  // Suggerimenti Inserimento
+  // Suggerimenti
   useEffect(() => {
     const lastWord = inputPhrase.split(/[\s,.]+/).pop().toLowerCase();
     if (lastWord.length > 1) {
@@ -95,7 +168,6 @@ export default function App() {
     }
   }, [inputPhrase, words]);
 
-  // Suggerimenti Ricerca
   useEffect(() => {
     if (searchQuery.length > 1) {
       const matches = words.filter(w => w.term.startsWith(searchQuery.toLowerCase())).slice(0, 3);
@@ -115,12 +187,13 @@ export default function App() {
 
   const translateWord = async (word) => {
     try {
+      // Traduzione dinamica verso l'italiano (o inglese se la sorgente è italiano)
       const target = selectedLang === 'it' ? 'en' : 'it';
-      const pair = selectedLang === 'it' ? 'it|en' : `${selectedLang}|it`;
+      const pair = `${selectedLang}|${target}`;
       const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${pair}`);
       const data = await response.json();
-      return data.responseData.translatedText || "Significato non trovato";
-    } catch { return "Errore API"; }
+      return data.responseData.translatedText || "???";
+    } catch { return "Error"; }
   };
 
   const handleAnalysis = async () => {
@@ -175,21 +248,21 @@ export default function App() {
 
   return (
     <div className={`flex flex-col min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0b101b] text-slate-200' : 'bg-slate-50 text-slate-900'} pb-44 font-sans overflow-x-hidden`}>
-      <header className="bg-[#0F172A] pt-12 pb-6 px-6 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
+      <header className="bg-[#0F172A] pt-12 pb-6 px-4 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 flex items-center justify-center drop-shadow-lg">
+            <div className="w-12 h-12 flex items-center justify-center drop-shadow-lg shrink-0">
               <AppIcon className="w-full h-full" />
             </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight leading-none uppercase italic">Vocab Pro</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl font-black tracking-tight leading-none uppercase italic truncate">Vocab Pro</h1>
               <div className="flex items-center gap-2 mt-1">
-                <p className="text-blue-400 text-[9px] font-bold uppercase tracking-widest">Intl Lab</p>
-                {locationData && <span className="text-[8px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">{locationData.city}</span>}
+                <p className="text-blue-400 text-[9px] font-bold uppercase tracking-widest shrink-0">{t.subtitle}</p>
+                {locationData && <span className="text-[8px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 truncate">{locationData.city}</span>}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 bg-slate-800 rounded-full text-yellow-400 border border-slate-700 active:scale-90 transition-all">
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -199,10 +272,16 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-2xl border border-slate-700 overflow-x-auto no-scrollbar">
+        {/* Selettore Lingue Ottimizzato per Mobile */}
+        <div className="flex items-center gap-1.5 bg-slate-800/50 p-1.5 rounded-2xl border border-slate-700 overflow-x-auto no-scrollbar">
           {Object.entries(LANGUAGES_MAP).map(([key, lang]) => (
-            <button key={key} onClick={() => setSelectedLang(key)} className={`flex-1 min-w-[75px] flex items-center justify-center gap-2 py-2.5 px-1 rounded-xl text-[10px] font-black uppercase transition-all ${selectedLang === key ? 'bg-[#3B82F6] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
-              <span>{lang.flag}</span> <span className="xs:inline">{lang.name}</span>
+            <button 
+              key={key} 
+              onClick={() => setSelectedLang(key)} 
+              className={`flex-1 min-w-[65px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-xl transition-all ${selectedLang === key ? 'bg-[#3B82F6] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            >
+              <span className="text-lg leading-none">{lang.flag}</span>
+              <span className="text-[8px] font-black uppercase tracking-tighter text-center">{lang.name}</span>
             </button>
           ))}
         </div>
@@ -213,7 +292,7 @@ export default function App() {
           <div className="p-6 pb-2">
             <textarea
               ref={textareaRef}
-              placeholder={`Escribe algo en ${LANGUAGES_MAP[selectedLang]?.name?.toLowerCase()}...`}
+              placeholder={t.placeholder}
               className={`w-full rounded-2xl p-5 border-none focus:ring-0 text-lg resize-none outline-none h-32 transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-900'}`}
               value={inputPhrase}
               onChange={(e) => setInputPhrase(e.target.value)}
@@ -225,12 +304,12 @@ export default function App() {
               <button key={s.id} onClick={() => applySuggestion(s.term)} className="whitespace-nowrap bg-blue-500/10 text-blue-400 text-[11px] font-black uppercase px-4 py-2 rounded-full flex items-center gap-1.5 border border-blue-500/20">
                 <Sparkles size={12} /> {s.term}
               </button>
-            )) : <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-4">Digitazione assistita</span>}
+            )) : <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-2">{t.autoType}</span>}
           </div>
 
           <div className="p-4">
             <button onClick={handleAnalysis} disabled={isAnalyzing || !inputPhrase.trim()} className="w-full bg-[#3B82F6] text-white font-black uppercase text-xs tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
-              {isAnalyzing ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Analizza Dizionario
+              {isAnalyzing ? <Loader2 className="animate-spin" /> : <Plus size={20} />} {t.btnAnalyze}
             </button>
           </div>
         </div>
@@ -239,9 +318,9 @@ export default function App() {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 text-slate-500">
               <BarChart2 size={16} className="text-blue-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Dizionario {LANGUAGES_MAP[selectedLang]?.name}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t.dictLabel} {LANGUAGES_MAP[selectedLang].name}</span>
             </div>
-            <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full uppercase">{words.length} Parole</span>
+            <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full uppercase">{words.length} {t.words}</span>
           </div>
           
           <div className="space-y-3">
@@ -253,11 +332,11 @@ export default function App() {
           {filteredList.filter(w => w.frequency < 3).length > 0 && (
             <div className="pt-2">
               <button onClick={() => setShowLowFreq(!showLowFreq)} className={`flex items-center justify-between w-full p-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
-                <span>Meno utilizzate ({filteredList.filter(w => w.frequency < 3).length})</span>
+                <span>{t.lessUsed} ({filteredList.filter(w => w.frequency < 3).length})</span>
                 {showLowFreq ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               {showLowFreq && <div className="mt-2 space-y-3">{filteredList.filter(w => w.frequency < 3).map(w => (
-                <SwipeableCard key={w.id} item={w} onDecrement={() => handleDecrement(w.id)} onIncrement={() => handleIncrement(w.id)} />
+                <SwipeableCard key={w.id} item={w} isDarkMode={isDarkMode} onDecrement={() => handleDecrement(w.id)} onIncrement={() => handleIncrement(w.id)} />
               ))}</div>}
             </div>
           )}
@@ -275,7 +354,7 @@ export default function App() {
           )}
           <div className="relative">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-            <input type="text" placeholder="Filtra dizionario..." className={`w-full rounded-[1.5rem] py-4 pl-14 pr-6 border-none focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'}`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <input type="text" placeholder={t.searchPlaceholder} className={`w-full rounded-[1.5rem] py-4 pl-14 pr-6 border-none focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'}`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
         </div>
       </footer>
@@ -285,11 +364,36 @@ export default function App() {
           <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 border-t-[12px] border-blue-500 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
             <div className="bg-blue-500/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto text-blue-500 shadow-inner"><BookOpen size={48} /></div>
             <div className="space-y-3">
-              <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Apprendimento Attivo</h2>
+              <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">{t.popupTitle}</h2>
               <div className={`text-4xl font-black capitalize tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{activePopupWord.term}</div>
               <p className="text-2xl text-slate-500 font-bold italic leading-tight">"{activePopupWord.meaning}"</p>
             </div>
-            <button onClick={() => setActivePopupWord(null)} className="w-full py-5 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-sm tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40">Ho capito</button>
+            <button onClick={() => setActivePopupWord(null)} className="w-full py-5 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-sm tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40">{t.popupButton}</button>
+          </div>
+        </div>
+      )}
+
+      {showInstallGuide && (
+        <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+          <div className={`rounded-[2.5rem] w-full max-w-sm p-8 space-y-6 animate-in slide-in-from-bottom duration-300 shadow-2xl ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+            <div className="flex justify-between items-center border-b border-slate-100/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#0F172A] flex items-center justify-center shadow-lg"><Plus size={20} className="text-white" /></div>
+                <h2 className={`text-xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-[#0F172A]'}`}>{t.install}</h2>
+              </div>
+              <button onClick={() => setShowInstallGuide(false)} className="text-slate-500 p-2 hover:text-slate-600 active:scale-90 transition-all"><X /></button>
+            </div>
+            <div className="space-y-4">
+              <div className={`p-5 rounded-[1.5rem] border text-xs flex items-center gap-4 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-black shrink-0">iOS</div>
+                <p className="font-bold tracking-tight leading-relaxed">Safari &rarr; <Globe size={14} className="inline mx-1"/> Condividi &rarr; <strong>Aggiungi a Home</strong></p>
+              </div>
+              <div className={`p-5 rounded-[1.5rem] border text-xs flex items-center gap-4 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-black shrink-0">AND</div>
+                <p className="font-bold tracking-tight leading-relaxed">Chrome &rarr; Menu &rarr; <strong>Installa App</strong></p>
+              </div>
+            </div>
+            <button onClick={() => setShowInstallGuide(false)} className="w-full py-5 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">{t.popupButton}</button>
           </div>
         </div>
       )}
