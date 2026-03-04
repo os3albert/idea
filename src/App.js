@@ -4,6 +4,14 @@ import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Tr
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
   // Lasciamo che index.html gestisca le icone statiche
+  // Assicuriamoci che il viewport sia impostato per non permettere lo zoom
+  let viewport = document.querySelector('meta[name="viewport"]');
+  if (!viewport) {
+    viewport = document.createElement('meta');
+    viewport.name = 'viewport';
+    document.head.appendChild(viewport);
+  }
+  viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
 };
 
 // Mappa delle traduzioni dell'interfaccia (I18n)
@@ -221,6 +229,28 @@ export default function App() {
   
   const t = UI_STRINGS[selectedLang] || UI_STRINGS.es;
 
+  // Blocco Pinch to Zoom e Gesture nativi per un'esperienza da app nativa
+  useEffect(() => {
+    const preventTouchZoom = (e) => {
+      if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+    const preventGesture = (e) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener('touchmove', preventTouchZoom, { passive: false });
+    document.addEventListener('gesturestart', preventGesture);
+    document.addEventListener('gesturechange', preventGesture);
+
+    return () => {
+      document.removeEventListener('touchmove', preventTouchZoom);
+      document.removeEventListener('gesturestart', preventGesture);
+      document.removeEventListener('gesturechange', preventGesture);
+    };
+  }, []);
+
   useEffect(() => {
     setupPWA();
     
@@ -415,7 +445,7 @@ export default function App() {
         
         if (hasValidData) {
           alert(t.importSuccess);
-          window.location.reload(); // Forza ricaricamento per applicare il nuovo state
+          window.location.reload(); 
         } else {
           throw new Error("No valid vocab keys found");
         }
@@ -424,7 +454,7 @@ export default function App() {
       }
     };
     reader.readAsText(file);
-    e.target.value = null; // Resetta l'input file
+    e.target.value = null; 
   };
 
   const filteredList = useMemo(() => {
@@ -439,7 +469,7 @@ export default function App() {
   ];
 
   return (
-    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0b101b] text-slate-200' : 'bg-slate-50 text-slate-900'} pb-44 font-sans overflow-x-hidden`}>
+    <div className={`flex flex-col min-h-screen transition-colors duration-300 touch-manipulation ${isDarkMode ? 'bg-[#0b101b] text-slate-200' : 'bg-slate-50 text-slate-900'} pb-44 font-sans overflow-x-hidden`}>
       <header className="bg-[#0F172A] pt-12 pb-6 px-4 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
@@ -599,7 +629,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Pulsante Settings / Export / Import */}
             <button 
               onClick={() => setShowSettings(true)} 
               className={`p-4 rounded-[1.5rem] shrink-0 transition-colors flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-slate-300' : 'bg-slate-100 text-slate-500 hover:text-slate-700'}`}
@@ -610,7 +639,7 @@ export default function App() {
         </div>
       </footer>
 
-      {/* POPUP SETTINGS (IMPORT / EXPORT) */}
+      {/* POPUP SETTINGS */}
       {showSettings && (
         <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[70] flex items-center justify-center p-6">
           <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 relative ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
