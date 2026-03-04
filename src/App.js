@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw, HelpCircle } from 'lucide-react';
+import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw, HelpCircle, Settings, Upload } from 'lucide-react';
 
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
@@ -34,7 +34,12 @@ const UI_STRINGS = {
     tut4Desc: "Toca el significado para editarlo manualmente. ¡Llega a 70 vistas para marcar la palabra como aprendida!",
     tutNext: "Siguiente",
     tutPrev: "Anterior",
-    tutFinish: "¡Empezar!"
+    tutFinish: "¡Empezar!",
+    settings: "Ajustes",
+    export: "Exportar Datos",
+    import: "Importar Datos",
+    importSuccess: "¡Datos importados con éxito!",
+    importError: "Error al importar el archivo."
   },
   en: {
     subtitle: "Language Lab",
@@ -62,7 +67,12 @@ const UI_STRINGS = {
     tut4Desc: "Tap the meaning to edit it manually. Reach 70 views to mark the word as learned!",
     tutNext: "Next",
     tutPrev: "Back",
-    tutFinish: "Start!"
+    tutFinish: "Start!",
+    settings: "Settings",
+    export: "Export Data",
+    import: "Import Data",
+    importSuccess: "Data imported successfully!",
+    importError: "Error importing file."
   },
   fr: {
     subtitle: "Labo de Langues",
@@ -90,7 +100,12 @@ const UI_STRINGS = {
     tut4Desc: "Appuyez sur la traduction pour la modifier. Atteignez 70 vues pour marquer le mot comme appris !",
     tutNext: "Suivant",
     tutPrev: "Retour",
-    tutFinish: "Commencer !"
+    tutFinish: "Commencer !",
+    settings: "Paramètres",
+    export: "Exporter les données",
+    import: "Importer les données",
+    importSuccess: "Données importées avec succès !",
+    importError: "Erreur lors de l'importation."
   },
   it: {
     subtitle: "Laboratorio Linguistico",
@@ -118,7 +133,12 @@ const UI_STRINGS = {
     tut4Desc: "Tocca il significato per modificarlo manualmente. Raggiungi 70 visualizzazioni per segnare la parola come imparata!",
     tutNext: "Avanti",
     tutPrev: "Indietro",
-    tutFinish: "Inizia!"
+    tutFinish: "Inizia!",
+    settings: "Impostazioni",
+    export: "Esporta Dati",
+    import: "Importa Dati",
+    importSuccess: "Dati importati con successo!",
+    importError: "Errore durante l'importazione del file."
   },
   tr: {
     subtitle: "Dil Laboratuvarı",
@@ -146,7 +166,12 @@ const UI_STRINGS = {
     tut4Desc: "Manuel düzenlemek için anlama dokunun. Kelimeyi öğrenildi işaretlemek için 70 görüntülemeye ulaşın!",
     tutNext: "İleri",
     tutPrev: "Geri",
-    tutFinish: "Başla!"
+    tutFinish: "Başla!",
+    settings: "Ayarlar",
+    export: "Verileri Dışa Aktar",
+    import: "Verileri İçe Aktar",
+    importSuccess: "Veriler başarıyla içe aktarıldı!",
+    importError: "Dosya içe aktarılırken hata oluştu."
   }
 };
 
@@ -180,6 +205,7 @@ export default function App() {
   const [showLowFreq, setShowLowFreq] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [showLearnedModal, setShowLearnedModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   // Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
@@ -191,6 +217,7 @@ export default function App() {
   const [locationData, setLocationData] = useState(null);
   
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   
   const t = UI_STRINGS[selectedLang] || UI_STRINGS.es;
 
@@ -350,11 +377,60 @@ export default function App() {
     }
   };
 
+  // Export Data Logic
+  const handleExportData = () => {
+    const dataToExport = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('vocab_')) {
+        dataToExport[key] = localStorage.getItem(key);
+      }
+    }
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vocab_pro_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import Data Logic
+  const handleImportData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        let hasValidData = false;
+        
+        for (const key in importedData) {
+          if (key.startsWith('vocab_')) {
+            localStorage.setItem(key, importedData[key]);
+            hasValidData = true;
+          }
+        }
+        
+        if (hasValidData) {
+          alert(t.importSuccess);
+          window.location.reload(); // Forza ricaricamento per applicare il nuovo state
+        } else {
+          throw new Error("No valid vocab keys found");
+        }
+      } catch (err) {
+        alert(t.importError);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = null; // Resetta l'input file
+  };
+
   const filteredList = useMemo(() => {
     return words.filter(w => w.term.toLowerCase().includes(searchQuery.toLowerCase()) || w.meaning.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.frequency - a.frequency);
   }, [words, searchQuery]);
 
-  // Array dei contenuti del Tutorial
   const tutorialData = [
     { title: t.tut1Title, desc: t.tut1Desc, icon: <Languages size={48} className="text-[#3B82F6]" /> },
     { title: t.tut2Title, desc: t.tut2Desc, icon: <CheckCircle2 size={48} className="text-emerald-500" /> },
@@ -479,8 +555,8 @@ export default function App() {
         </div>
       </main>
 
-      <footer className={`fixed bottom-0 left-0 right-0 border-t p-4 pb-12 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-colors ${isDarkMode ? 'bg-[#0b101b]/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
-        <div className="max-w-lg mx-auto space-y-2">
+      <footer className={`fixed bottom-0 left-0 right-0 border-t p-4 pb-12 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-colors flex flex-col justify-end ${isDarkMode ? 'bg-[#0b101b]/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+        <div className="max-w-lg w-full mx-auto space-y-2">
           {searchSuggestions.length > 0 && (
             <div className="flex gap-2 overflow-x-auto no-scrollbar mb-2">
               {searchSuggestions.map(s => (
@@ -491,7 +567,7 @@ export default function App() {
           <div className="relative flex items-center gap-3">
             <button 
               onClick={() => setShowLearnedModal(true)} 
-              className={`p-4 rounded-[1.5rem] shrink-0 transition-colors flex items-center justify-center ${learnedWords.length > 0 ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/20' : isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}
+              className={`p-4 rounded-[1.5rem] shrink-0 transition-colors flex items-center justify-center ${learnedWords.length > 0 ? 'bg-yellow-400 text-yellow-950 shadow-lg shadow-yellow-400/20' : isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}
             >
                <div className="relative">
                  <GraduationCap size={20} />
@@ -522,9 +598,58 @@ export default function App() {
                 </button>
               )}
             </div>
+
+            {/* Pulsante Settings / Export / Import */}
+            <button 
+              onClick={() => setShowSettings(true)} 
+              className={`p-4 rounded-[1.5rem] shrink-0 transition-colors flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-slate-400 hover:text-slate-300' : 'bg-slate-100 text-slate-500 hover:text-slate-700'}`}
+            >
+               <Settings size={20} />
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* POPUP SETTINGS (IMPORT / EXPORT) */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[70] flex items-center justify-center p-6">
+          <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 relative ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+            <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-90 transition-all">
+              <X size={20} />
+            </button>
+
+            <div className="flex justify-center mb-4">
+              <div className={`p-6 rounded-full shadow-inner ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                 <Settings size={48} className="text-slate-400" />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className={`text-2xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {t.settings}
+              </h2>
+            </div>
+
+            <div className="flex flex-col gap-4 pt-2">
+              <button onClick={handleExportData} className="w-full py-4 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2">
+                <Download size={18} /> {t.export}
+              </button>
+
+              <input 
+                type="file" 
+                accept=".json" 
+                ref={fileInputRef} 
+                onChange={handleImportData} 
+                className="hidden" 
+              />
+
+              <button onClick={() => fileInputRef.current.click()} className={`w-full py-4 rounded-[1.5rem] font-black uppercase text-xs tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-sm'}`}>
+                <Upload size={18} /> {t.import}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* POPUP TUTORIAL A STEP */}
       {showTutorial && (
