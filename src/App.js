@@ -1,27 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe } from 'lucide-react';
+import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe } from 'lucide-react';
 
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
-  const iconSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-      <rect x="64" y="64" width="896" height="896" rx="220" fill="#0F172A"/>
-      <rect x="232" y="320" width="560" height="120" rx="60" fill="#E5E7EB"/>
-      <rect x="232" y="452" width="560" height="120" rx="60" fill="#3B82F6"/>
-      <rect x="232" y="584" width="560" height="120" rx="60" fill="#E5E7EB"/>
-    </svg>
-  `;
-
-  const iconBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
-  const iconUrl = URL.createObjectURL(iconBlob);
-
-  // 1. Meta tags per mobile
   const metaTags = [
     { name: 'apple-mobile-web-app-capable', content: 'yes' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-    { name: 'apple-mobile-web-app-title', content: 'Vocab Pro' },
+    { name: 'apple-mobile-web-app-title', content: 'VocabES' },
     { name: 'mobile-web-app-capable', content: 'yes' },
-    { name: 'theme-color', content: '#0F172A' }
+    { name: 'theme-color', content: '#059669' }
   ];
   
   metaTags.forEach(({ name, content }) => {
@@ -33,53 +20,6 @@ const setupPWA = () => {
     }
     el.content = content;
   });
-
-  // 2. Pulizia aggressiva delle icone di default di React
-  const selectorsToRemove = [
-    'link[rel="icon"]',
-    'link[rel="apple-touch-icon"]',
-    'link[rel="shortcut icon"]',
-    'link[rel="manifest"]'
-  ];
-  selectorsToRemove.forEach(selector => {
-    document.querySelectorAll(selector).forEach(el => el.remove());
-  });
-
-  // 3. Iniezione nuova Favicon (per browser)
-  const favicon = document.createElement('link');
-  favicon.rel = 'icon';
-  favicon.type = 'image/svg+xml';
-  favicon.href = iconUrl;
-  document.head.appendChild(favicon);
-
-  // 4. Iniezione Apple Touch Icon (per iPhone)
-  const appleIcon = document.createElement('link');
-  appleIcon.rel = 'apple-touch-icon';
-  appleIcon.href = iconUrl;
-  document.head.appendChild(appleIcon);
-
-  // 5. Iniezione Manifest (per Android/Installazione)
-  const manifest = {
-    name: 'Vocab Pro',
-    short_name: 'VocabPro',
-    start_url: '.',
-    display: 'standalone',
-    background_color: '#0F172A',
-    theme_color: '#3B82F6',
-    icons: [{
-      src: iconUrl,
-      sizes: '1024x1024',
-      type: 'image/svg+xml',
-      purpose: 'any maskable'
-    }]
-  };
-
-  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-  const manifestURL = URL.createObjectURL(manifestBlob);
-  const manifestLink = document.createElement('link');
-  manifestLink.rel = 'manifest';
-  manifestLink.href = manifestURL;
-  document.head.appendChild(manifestLink);
 };
 
 // Mappa delle lingue supportate
@@ -180,7 +120,7 @@ export default function App() {
     setIsAnalyzing(true);
     
     const cleanedWords = inputPhrase.toLowerCase()
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")
+      .replace(/[.,/#!$%^&*;:{}=\-_`~()?"']/g, "")
       .split(/\s+/)
       .filter(w => w.length >= 3);
     
