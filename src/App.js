@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw, HelpCircle, Settings, Upload } from 'lucide-react';
+import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw, HelpCircle, Settings, Upload, Type, AlignLeft } from 'lucide-react';
 
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
-  // Lasciamo che index.html gestisca le icone statiche
-  // Assicuriamoci che il viewport sia impostato per non permettere lo zoom
   let viewport = document.querySelector('meta[name="viewport"]');
   if (!viewport) {
     viewport = document.createElement('meta');
@@ -18,28 +16,30 @@ const setupPWA = () => {
 const UI_STRINGS = {
   es: {
     subtitle: "Laboratorio de Idiomas",
-    placeholder: "Escribe una frase en español...",
-    btnAnalyze: "Analizar Diccionario",
+    placeholderWord: "Escribe para extraer palabras...",
+    placeholderPhrase: "Escribe una frase completa...",
+    btnAnalyzeWord: "Extraer Palabras",
+    btnAnalyzePhrase: "Traducir Frase",
     dictLabel: "Diccionario",
-    words: "Palabras",
-    lessUsed: "Menos estudiadas",
+    words: "Elementos",
+    lessUsed: "Menos estudiados",
     searchPlaceholder: "Filtrar diccionario...",
     popupTitle: "Memoria Activa",
     popupButton: "Entendido",
     install: "Instalar",
-    autoType: "Escritura asistida",
-    learned: "Palabras aprendidas",
+    autoType: "Sugerencias",
+    learned: "Aprendidas",
     markLearned: "Marcar como aprendida",
     noLearned: "Aún no hay palabras aprendidas",
     unmarkLearned: "Devolver a estudio",
-    tut1Title: "¡Bienvenido a Vocab Pro!",
-    tut1Desc: "Escribe una frase y extraeremos y traduciremos las palabras automáticamente para ti.",
+    tut1Title: "¡Bienvenido!",
+    tut1Desc: "Escribe una frase y extraeremos o traduciremos las palabras automáticamente.",
     tut2Title: "Desliza a la Derecha",
-    tut2Desc: "Desliza una tarjeta hacia la derecha para aumentar su frecuencia de estudio (+1).",
+    tut2Desc: "Aumenta la frecuencia de estudio (+1).",
     tut3Title: "Desliza a la Izquierda",
-    tut3Desc: "Desliza hacia la izquierda para restar frecuencia o eliminar la palabra si ya no la necesitas.",
+    tut3Desc: "Reduce la frecuencia o elimina la palabra.",
     tut4Title: "Edita y Aprende",
-    tut4Desc: "Toca el significado para editarlo manualmente. ¡Llega a 70 vistas para marcar la palabra como aprendida!",
+    tut4Desc: "Toca el significado para editarlo manualmente. ¡Llega a 70 vistas para aprenderla!",
     tutNext: "Siguiente",
     tutPrev: "Anterior",
     tutFinish: "¡Empezar!",
@@ -47,32 +47,38 @@ const UI_STRINGS = {
     export: "Exportar Datos",
     import: "Importar Datos",
     importSuccess: "¡Datos importados con éxito!",
-    importError: "Error al importar el archivo."
+    importError: "Error al importar el archivo.",
+    wordMode: "Palabras",
+    phraseMode: "Frase",
+    targetLang: "Idioma de Traducción",
+    synonyms: "Sinónimos"
   },
   en: {
     subtitle: "Language Lab",
-    placeholder: "Write a sentence in English...",
-    btnAnalyze: "Analyze Dictionary",
+    placeholderWord: "Type to extract words...",
+    placeholderPhrase: "Type a complete phrase...",
+    btnAnalyzeWord: "Extract Words",
+    btnAnalyzePhrase: "Translate Phrase",
     dictLabel: "Dictionary",
-    words: "Words",
+    words: "Items",
     lessUsed: "Less studied",
     searchPlaceholder: "Filter dictionary...",
     popupTitle: "Active Memory",
     popupButton: "Got it",
     install: "Install",
-    autoType: "Smart typing",
-    learned: "Learned Words",
+    autoType: "Suggestions",
+    learned: "Learned",
     markLearned: "Mark as learned",
-    noLearned: "No learned words yet",
+    noLearned: "No learned items yet",
     unmarkLearned: "Return to study",
-    tut1Title: "Welcome to Vocab Pro!",
-    tut1Desc: "Write a sentence and we will automatically extract and translate the words for you.",
+    tut1Title: "Welcome!",
+    tut1Desc: "Type a sentence and we will automatically extract and translate the words.",
     tut2Title: "Swipe Right",
-    tut2Desc: "Swipe a card to the right to increase its study frequency (+1).",
+    tut2Desc: "Increase study frequency (+1).",
     tut3Title: "Swipe Left",
-    tut3Desc: "Swipe left to decrease the frequency or delete the word if you no longer need it.",
+    tut3Desc: "Decrease frequency or delete the word.",
     tut4Title: "Edit & Learn",
-    tut4Desc: "Tap the meaning to edit it manually. Reach 70 views to mark the word as learned!",
+    tut4Desc: "Tap the meaning to edit it. Reach 70 views to mark it as learned!",
     tutNext: "Next",
     tutPrev: "Back",
     tutFinish: "Start!",
@@ -80,65 +86,77 @@ const UI_STRINGS = {
     export: "Export Data",
     import: "Import Data",
     importSuccess: "Data imported successfully!",
-    importError: "Error importing file."
+    importError: "Error importing file.",
+    wordMode: "Words",
+    phraseMode: "Phrase",
+    targetLang: "Translation Language",
+    synonyms: "Synonyms"
   },
   fr: {
     subtitle: "Labo de Langues",
-    placeholder: "Écrivez une phrase en français...",
-    btnAnalyze: "Analyser le dictionnaire",
+    placeholderWord: "Écrivez pour extraire des mots...",
+    placeholderPhrase: "Écrivez une phrase complète...",
+    btnAnalyzeWord: "Extraire les Mots",
+    btnAnalyzePhrase: "Traduire la Phrase",
     dictLabel: "Dictionnaire",
-    words: "Mots",
+    words: "Éléments",
     lessUsed: "Moins étudiés",
-    searchPlaceholder: "Filtrer le dictionnaire...",
+    searchPlaceholder: "Filtrer...",
     popupTitle: "Mémoire Active",
     popupButton: "J'ai compris",
     install: "Installer",
-    autoType: "Saisie assistée",
-    learned: "Mots appris",
+    autoType: "Suggestions",
+    learned: "Appris",
     markLearned: "Marquer comme appris",
-    noLearned: "Pas encore de mots appris",
+    noLearned: "Pas encore d'éléments appris",
     unmarkLearned: "Retourner à l'étude",
-    tut1Title: "Bienvenue sur Vocab Pro !",
-    tut1Desc: "Écrivez une phrase et nous extrairons et traduirons automatiquement les mots pour vous.",
+    tut1Title: "Bienvenue !",
+    tut1Desc: "Écrivez une phrase et nous extrairons et traduirons automatiquement.",
     tut2Title: "Glissez à Droite",
-    tut2Desc: "Glissez une carte vers la droite pour augmenter sa fréquence d'étude (+1).",
+    tut2Desc: "Augmentez la fréquence d'étude (+1).",
     tut3Title: "Glissez à Gauche",
-    tut3Desc: "Glissez vers la gauche pour réduire la fréquence ou supprimer le mot.",
+    tut3Desc: "Réduisez la fréquence ou supprimez le mot.",
     tut4Title: "Éditer et Apprendre",
-    tut4Desc: "Appuyez sur la traduction pour la modifier. Atteignez 70 vues pour marquer le mot comme appris !",
+    tut4Desc: "Appuyez sur la traduction pour modifier. Atteignez 70 vues pour apprendre !",
     tutNext: "Suivant",
     tutPrev: "Retour",
     tutFinish: "Commencer !",
     settings: "Paramètres",
-    export: "Exporter les données",
-    import: "Importer les données",
-    importSuccess: "Données importées avec succès !",
-    importError: "Erreur lors de l'importation."
+    export: "Exporter",
+    import: "Importer",
+    importSuccess: "Importé avec succès !",
+    importError: "Erreur lors de l'importation.",
+    wordMode: "Mots",
+    phraseMode: "Phrase",
+    targetLang: "Langue de Traduction",
+    synonyms: "Synonymes"
   },
   it: {
     subtitle: "Laboratorio Linguistico",
-    placeholder: "Scrivi una frase in italiano...",
-    btnAnalyze: "Analizza Dizionario",
+    placeholderWord: "Scrivi per estrarre parole...",
+    placeholderPhrase: "Scrivi una frase intera...",
+    btnAnalyzeWord: "Estrai Parole",
+    btnAnalyzePhrase: "Traduci Frase",
     dictLabel: "Dizionario",
-    words: "Parole",
-    lessUsed: "Meno studiate",
-    searchPlaceholder: "Filtra il dizionario...",
+    words: "Elementi",
+    lessUsed: "Meno studiati",
+    searchPlaceholder: "Filtra dizionario...",
     popupTitle: "Memoria Attiva",
     popupButton: "Ho capito",
     install: "Installa",
-    autoType: "Scrittura assistita",
-    learned: "Parole imparate",
+    autoType: "Suggerimenti",
+    learned: "Imparate",
     markLearned: "Segna come imparata",
-    noLearned: "Nessuna parola imparata",
+    noLearned: "Nessun elemento imparato",
     unmarkLearned: "Riporta allo studio",
-    tut1Title: "Benvenuto in Vocab Pro!",
-    tut1Desc: "Scrivi una frase e noi estrarremo e tradurremo automaticamente le parole per te.",
+    tut1Title: "Benvenuto!",
+    tut1Desc: "Scrivi una frase e noi estrarremo o tradurremo le parole per te.",
     tut2Title: "Scorri a Destra",
-    tut2Desc: "Scorri una card verso destra per aumentare la sua frequenza di studio (+1).",
+    tut2Desc: "Aumenta la frequenza di studio (+1).",
     tut3Title: "Scorri a Sinistra",
-    tut3Desc: "Scorri verso sinistra per ridurre la frequenza o eliminare la parola se non ti serve più.",
+    tut3Desc: "Riduci la frequenza o elimina la parola.",
     tut4Title: "Modifica e Impara",
-    tut4Desc: "Tocca il significato per modificarlo manualmente. Raggiungi 70 visualizzazioni per segnare la parola come imparata!",
+    tut4Desc: "Tocca il significato per modificarlo. Raggiungi 70 visualizzazioni per impararla!",
     tutNext: "Avanti",
     tutPrev: "Indietro",
     tutFinish: "Inizia!",
@@ -146,40 +164,50 @@ const UI_STRINGS = {
     export: "Esporta Dati",
     import: "Importa Dati",
     importSuccess: "Dati importati con successo!",
-    importError: "Errore durante l'importazione del file."
+    importError: "Errore durante l'importazione.",
+    wordMode: "Parole",
+    phraseMode: "Frase",
+    targetLang: "Lingua di Traduzione",
+    synonyms: "Sinonimi"
   },
   tr: {
     subtitle: "Dil Laboratuvarı",
-    placeholder: "Türkçe bir cümle yazın...",
-    btnAnalyze: "Sözlüğü Analiz Et",
+    placeholderWord: "Kelime çıkarmak için yazın...",
+    placeholderPhrase: "Tam bir cümle yazın...",
+    btnAnalyzeWord: "Kelimeleri Çıkar",
+    btnAnalyzePhrase: "Cümleyi Çevir",
     dictLabel: "Sözlük",
-    words: "Kelime",
+    words: "Öğeler",
     lessUsed: "Daha az çalışılanlar",
-    searchPlaceholder: "Sözlükte filtrele...",
+    searchPlaceholder: "Filtrele...",
     popupTitle: "Aktif Bellek",
     popupButton: "Anladım",
     install: "Yükle",
-    autoType: "Destekli yazım",
-    learned: "Öğrenilen Kelimeler",
-    markLearned: "Öğrenildi olarak işaretle",
-    noLearned: "Henüz öğrenilen kelime yok",
-    unmarkLearned: "Çalışmaya geri dön",
-    tut1Title: "Vocab Pro'ya Hoş Geldiniz!",
-    tut1Desc: "Bir cümle yazın, kelimeleri sizin için otomatik olarak çıkarıp çevirelim.",
+    autoType: "Öneriler",
+    learned: "Öğrenilenler",
+    markLearned: "Öğrenildi işaretle",
+    noLearned: "Henüz öğrenilen yok",
+    unmarkLearned: "Çalışmaya dön",
+    tut1Title: "Hoş Geldiniz!",
+    tut1Desc: "Yazın, kelimeleri otomatik çıkarıp çevirelim.",
     tut2Title: "Sağa Kaydır",
-    tut2Desc: "Çalışma sıklığını artırmak için bir kartı sağa kaydırın (+1).",
+    tut2Desc: "Çalışma sıklığını artırın (+1).",
     tut3Title: "Sola Kaydır",
-    tut3Desc: "Sıklığı azaltmak veya kelimeyi silmek için sola kaydırın.",
+    tut3Desc: "Sıklığı azaltın veya silin.",
     tut4Title: "Düzenle ve Öğren",
-    tut4Desc: "Manuel düzenlemek için anlama dokunun. Kelimeyi öğrenildi işaretlemek için 70 görüntülemeye ulaşın!",
+    tut4Desc: "Düzenlemek için dokunun. Öğrenmek için 70'e ulaşın!",
     tutNext: "İleri",
     tutPrev: "Geri",
     tutFinish: "Başla!",
     settings: "Ayarlar",
-    export: "Verileri Dışa Aktar",
-    import: "Verileri İçe Aktar",
-    importSuccess: "Veriler başarıyla içe aktarıldı!",
-    importError: "Dosya içe aktarılırken hata oluştu."
+    export: "Dışa Aktar",
+    import: "İçe Aktar",
+    importSuccess: "Başarıyla içe aktarıldı!",
+    importError: "İçe aktarma hatası.",
+    wordMode: "Kelimeler",
+    phraseMode: "Cümle",
+    targetLang: "Çeviri Dili",
+    synonyms: "Eş Anlamlılar"
   }
 };
 
@@ -200,11 +228,28 @@ const AppIcon = ({ className }) => (
   </svg>
 );
 
+// Fetch Sinonimi via Datamuse API (Supporta EN, ES, FR, IT)
+const fetchSynonyms = async (word, lang) => {
+  if(!['en', 'es', 'fr', 'it'].includes(lang)) return [];
+  try {
+      const res = await fetch(`https://api.datamuse.com/words?ml=${encodeURIComponent(word)}&v=${lang}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data
+        .map(d => d.word)
+        .filter(w => w.toLowerCase() !== word.toLowerCase() && !w.includes(' '))
+        .slice(0, 3);
+  } catch {
+      return [];
+  }
+};
+
 export default function App() {
-  const [selectedLang, setSelectedLang] = useState(() => {
-    return localStorage.getItem('vocab_pro_lang') || null; 
-  });
+  const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('vocab_pro_lang') || null);
+  const [targetLang, setTargetLang] = useState(() => localStorage.getItem('vocab_pro_target_lang') || 'it');
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('vocab_pro_theme') === 'dark');
+  const [isPhraseMode, setIsPhraseMode] = useState(false);
+  
   const [words, setWords] = useState([]);
   const [learnedWords, setLearnedWords] = useState([]);
   const [inputPhrase, setInputPhrase] = useState("");
@@ -215,7 +260,6 @@ export default function App() {
   const [showLearnedModal, setShowLearnedModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Tutorial State
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
 
@@ -229,16 +273,10 @@ export default function App() {
   
   const t = UI_STRINGS[selectedLang] || UI_STRINGS.es;
 
-  // Blocco Pinch to Zoom e Gesture nativi per un'esperienza da app nativa
+  // Blocco gesture di zoom per esperienza nativa
   useEffect(() => {
-    const preventTouchZoom = (e) => {
-      if (e.touches && e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-    const preventGesture = (e) => {
-      e.preventDefault();
-    };
+    const preventTouchZoom = (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); };
+    const preventGesture = (e) => e.preventDefault();
 
     document.addEventListener('touchmove', preventTouchZoom, { passive: false });
     document.addEventListener('gesturestart', preventGesture);
@@ -253,7 +291,6 @@ export default function App() {
 
   useEffect(() => {
     setupPWA();
-    
     const initApp = async () => {
       try {
         const response = await fetch('https://ipapi.co/json/');
@@ -266,6 +303,10 @@ export default function App() {
           const defaultLang = mapping[data.country_code] || 'en'; 
           setSelectedLang(defaultLang);
           localStorage.setItem('vocab_pro_lang', defaultLang);
+          
+          const defaultTarget = defaultLang === 'it' ? 'en' : 'it';
+          setTargetLang(defaultTarget);
+          localStorage.setItem('vocab_pro_target_lang', defaultTarget);
         }
         
         const hour = new Date().getHours();
@@ -273,10 +314,11 @@ export default function App() {
           setIsDarkMode(true);
         }
       } catch (err) {
-        console.warn("Location API unavailable.");
         if (!selectedLang) {
              setSelectedLang('es');
+             setTargetLang('it');
              localStorage.setItem('vocab_pro_lang', 'es');
+             localStorage.setItem('vocab_pro_target_lang', 'it');
         }
       }
     };
@@ -287,10 +329,8 @@ export default function App() {
     if (selectedLang) {
       const saved = localStorage.getItem(`vocab_words_${selectedLang}`);
       setWords(saved ? JSON.parse(saved) : []);
-      
       const savedLearned = localStorage.getItem(`vocab_learned_${selectedLang}`);
       setLearnedWords(savedLearned ? JSON.parse(savedLearned) : []);
-
       localStorage.setItem('vocab_pro_lang', selectedLang);
     }
   }, [selectedLang]);
@@ -303,18 +343,32 @@ export default function App() {
   }, [words, learnedWords, selectedLang]);
 
   useEffect(() => {
+    localStorage.setItem('vocab_pro_target_lang', targetLang);
+  }, [targetLang]);
+
+  useEffect(() => {
     localStorage.setItem('vocab_pro_theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
+  // Suggerimenti Dinamici (Frase o Parola)
   useEffect(() => {
-    const lastWord = inputPhrase.split(/[\s,.]+/).pop().toLowerCase();
-    if (lastWord.length > 1) {
-      const matches = words.filter(w => w.term.startsWith(lastWord)).slice(0, 5);
-      setSuggestions(matches);
-    } else {
+    if (!inputPhrase.trim()) {
       setSuggestions([]);
+      return;
     }
-  }, [inputPhrase, words]);
+    if (isPhraseMode) {
+       const matches = words.filter(w => w.type === 'phrase' && w.term.toLowerCase().includes(inputPhrase.toLowerCase())).slice(0,3);
+       setSuggestions(matches);
+    } else {
+      const lastWord = inputPhrase.split(/[\s,.]+/).pop().toLowerCase();
+      if (lastWord.length > 1) {
+        const matches = words.filter(w => w.type !== 'phrase' && w.term.startsWith(lastWord)).slice(0, 5);
+        setSuggestions(matches);
+      } else {
+        setSuggestions([]);
+      }
+    }
+  }, [inputPhrase, words, isPhraseMode]);
 
   useEffect(() => {
     if (searchQuery.length > 1) {
@@ -326,18 +380,22 @@ export default function App() {
   }, [searchQuery, words]);
 
   const applySuggestion = (fullWord) => {
-    const parts = inputPhrase.split(/\s+/);
-    parts[parts.length - 1] = fullWord + " ";
-    setInputPhrase(parts.join(" "));
+    if (isPhraseMode) {
+      setInputPhrase(fullWord);
+    } else {
+      const parts = inputPhrase.split(/\s+/);
+      parts[parts.length - 1] = fullWord + " ";
+      setInputPhrase(parts.join(" "));
+    }
     setSuggestions([]);
     if (textareaRef.current) textareaRef.current.focus();
   };
 
-  const translateWord = async (word) => {
+  const translateWord = async (text) => {
+    if (selectedLang === targetLang) return text;
     try {
-      const target = selectedLang === 'it' ? 'en' : 'it';
-      const pair = `${selectedLang}|${target}`;
-      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${pair}`);
+      const pair = `${selectedLang}|${targetLang}`;
+      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${pair}`);
       const data = await response.json();
       return data.responseData.translatedText || "???";
     } catch { return "Error"; }
@@ -346,36 +404,54 @@ export default function App() {
   const handleAnalysis = async () => {
     if (!inputPhrase.trim()) return;
     setIsAnalyzing(true);
-    const cleanedWords = inputPhrase.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "").split(/\s+/).filter(w => w.length >= 3);
-    const uniqueWords = [...new Set(cleanedWords)];
     let newWords = [...words];
     let lastToPop = null;
 
-    for (const word of uniqueWords) {
-      if (learnedWords.some(w => w.term === word)) {
-          continue;
-      }
+    if (isPhraseMode) {
+       const phrase = inputPhrase.trim();
+       if (learnedWords.some(w => w.term.toLowerCase() === phrase.toLowerCase())) {
+           setInputPhrase(""); setIsAnalyzing(false); return;
+       }
+       const existingIdx = newWords.findIndex(w => w.term.toLowerCase() === phrase.toLowerCase());
+       if (existingIdx > -1) {
+          newWords[existingIdx] = { ...newWords[existingIdx], frequency: newWords[existingIdx].frequency + 1, lastUpdated: new Date().toISOString() };
+          lastToPop = newWords[existingIdx];
+       } else {
+          const meaning = await translateWord(phrase);
+          const newEntry = { id: Date.now().toString(), term: phrase, meaning, frequency: 1, type: 'phrase', isManuallyEdited: false, lastUpdated: new Date().toISOString() };
+          newWords.push(newEntry);
+          lastToPop = newEntry;
+       }
+    } else {
+       const cleanedWords = inputPhrase.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "").split(/\s+/).filter(w => w.length >= 2);
+       const uniqueWords = [...new Set(cleanedWords)];
 
-      const existingIdx = newWords.findIndex(w => w.term === word);
-      if (existingIdx > -1) {
-        const updatedFreq = newWords[existingIdx].frequency + 1;
-        newWords[existingIdx] = { ...newWords[existingIdx], frequency: updatedFreq, lastUpdated: new Date().toISOString() };
-        if (updatedFreq <= 10) lastToPop = { term: word, meaning: newWords[existingIdx].meaning };
-      } else {
-        const meaning = await translateWord(word);
-        const newEntry = { id: word, term: word, meaning: meaning, frequency: 1, isManuallyEdited: false, lastUpdated: new Date().toISOString() };
-        newWords.push(newEntry);
-        lastToPop = { term: word, meaning: meaning };
-      }
+       for (const word of uniqueWords) {
+         if (learnedWords.some(w => w.term === word)) continue;
+
+         const existingIdx = newWords.findIndex(w => w.term === word);
+         if (existingIdx > -1) {
+           const updatedFreq = newWords[existingIdx].frequency + 1;
+           newWords[existingIdx] = { ...newWords[existingIdx], frequency: updatedFreq, lastUpdated: new Date().toISOString() };
+           if (updatedFreq <= 10) lastToPop = newWords[existingIdx];
+         } else {
+           const meaning = await translateWord(word);
+           const synonyms = await fetchSynonyms(word, selectedLang);
+           const newEntry = { id: word, term: word, meaning, synonyms, type: 'word', frequency: 1, isManuallyEdited: false, lastUpdated: new Date().toISOString() };
+           newWords.push(newEntry);
+           lastToPop = newEntry;
+         }
+       }
     }
+
     setWords(newWords);
-    if (lastToPop) setActivePopupWord(lastToPop);
+    if (lastToPop && lastToPop.frequency <= 10) setActivePopupWord(lastToPop);
     setInputPhrase("");
     setIsAnalyzing(false);
   };
 
   const handleEditMeaning = (id, newMeaning) => {
-    setWords(words.map(w => w.id === id ? { ...w, meaning: newMeaning, isManuallyEdited: true } : w));
+    setWords(words.map(w => w.id === id ? { ...w, meaning: newMeaning, isManuallyEdited: true, lastUpdated: new Date().toISOString() } : w));
   };
 
   const handleMarkLearned = (item) => {
@@ -385,7 +461,7 @@ export default function App() {
 
   const handleUnmarkLearned = (item) => {
     setLearnedWords(learnedWords.filter(w => w.id !== item.id));
-    setWords([item, ...words]);
+    setWords([{ ...item, lastUpdated: new Date().toISOString() }, ...words]);
   };
 
   const handleIncrement = (id) => {
@@ -394,20 +470,19 @@ export default function App() {
     const newFreq = wordObj.frequency + 1;
     const newWords = words.map(w => w.id === id ? { ...w, frequency: newFreq, lastUpdated: new Date().toISOString() } : w);
     setWords(newWords);
-    if (newFreq <= 10) setActivePopupWord({ term: wordObj.term, meaning: wordObj.meaning });
+    if (newFreq <= 10) setActivePopupWord(wordObj);
   };
 
   const handleDecrement = (id) => {
     const existing = words.find(w => w.id === id);
     if (!existing) return;
     if (existing.frequency > 1) {
-      setWords(words.map(w => w.id === id ? { ...w, frequency: existing.frequency - 1 } : w));
+      setWords(words.map(w => w.id === id ? { ...w, frequency: existing.frequency - 1, lastUpdated: new Date().toISOString() } : w));
     } else {
       setWords(words.filter(w => w.id !== id));
     }
   };
 
-  // Export Data Logic
   const handleExportData = () => {
     const dataToExport = {};
     for (let i = 0; i < localStorage.length; i++) {
@@ -425,40 +500,37 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  // Import Data Logic
   const handleImportData = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const importedData = JSON.parse(event.target.result);
         let hasValidData = false;
-        
         for (const key in importedData) {
           if (key.startsWith('vocab_')) {
             localStorage.setItem(key, importedData[key]);
             hasValidData = true;
           }
         }
-        
         if (hasValidData) {
           alert(t.importSuccess);
           window.location.reload(); 
-        } else {
-          throw new Error("No valid vocab keys found");
-        }
-      } catch (err) {
-        alert(t.importError);
-      }
+        } else throw new Error();
+      } catch (err) { alert(t.importError); }
     };
     reader.readAsText(file);
     e.target.value = null; 
   };
 
   const filteredList = useMemo(() => {
-    return words.filter(w => w.term.toLowerCase().includes(searchQuery.toLowerCase()) || w.meaning.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.frequency - a.frequency);
+    return words
+      .filter(w => w.term.toLowerCase().includes(searchQuery.toLowerCase()) || w.meaning.toLowerCase().includes(searchQuery.toLowerCase()))
+      .sort((a, b) => {
+        if (b.frequency !== a.frequency) return b.frequency - a.frequency;
+        return new Date(b.lastUpdated || 0) - new Date(a.lastUpdated || 0);
+      });
   }, [words, searchQuery]);
 
   const tutorialData = [
@@ -469,8 +541,8 @@ export default function App() {
   ];
 
   return (
-    <div className={`flex flex-col min-h-screen transition-colors duration-300 touch-manipulation ${isDarkMode ? 'bg-[#0b101b] text-slate-200' : 'bg-slate-50 text-slate-900'} pb-44 font-sans overflow-x-hidden`}>
-      <header className="bg-[#0F172A] pt-12 pb-6 px-4 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
+    <div className={`flex flex-col h-screen h-[100dvh] w-full overflow-hidden transition-colors duration-300 touch-manipulation ${isDarkMode ? 'bg-[#0b101b] text-slate-200' : 'bg-slate-50 text-slate-900'} font-sans`}>
+      <header className="shrink-0 z-30 bg-[#0F172A] pt-8 sm:pt-12 pb-6 px-4 text-white shadow-lg flex flex-col gap-4 border-b border-slate-800">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 flex items-center justify-center drop-shadow-lg shrink-0">
@@ -511,81 +583,115 @@ export default function App() {
         </div>
       </header>
 
-      <main className="p-4 flex-1 max-w-lg mx-auto w-full space-y-6">
-        <div className={`rounded-[2rem] shadow-xl border overflow-hidden transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <div className="p-6 pb-2">
-            <textarea
-              ref={textareaRef}
-              placeholder={t.placeholder}
-              className={`w-full rounded-2xl p-5 border-none focus:ring-0 text-lg resize-none outline-none h-32 transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-900'}`}
-              value={inputPhrase}
-              onChange={(e) => setInputPhrase(e.target.value)}
-            />
-          </div>
-
-          <div className={`h-12 border-t flex items-center px-4 gap-2 overflow-x-auto no-scrollbar ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-            {suggestions.length > 0 ? suggestions.map(s => (
-              <button key={s.id} onClick={() => applySuggestion(s.term)} className="whitespace-nowrap bg-blue-500/10 text-blue-400 text-[11px] font-black uppercase px-4 py-2 rounded-full flex items-center gap-1.5 border border-blue-500/20">
-                <Sparkles size={12} /> {s.term}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar w-full relative">
+        <div className="p-4 max-w-lg mx-auto space-y-6 pb-16">
+          <div className={`rounded-[2rem] shadow-xl border overflow-hidden transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            
+            {/* Toggle Modalità: Parola vs Frase */}
+            <div className={`flex p-1 border-b ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+              <button 
+                onClick={() => setIsPhraseMode(false)} 
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${!isPhraseMode ? (isDarkMode ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-blue-600 shadow-sm') : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <Type size={14} /> {t.wordMode}
               </button>
-            )) : <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-2">{t.autoType}</span>}
-          </div>
-
-          <div className="p-4">
-            <button onClick={handleAnalysis} disabled={isAnalyzing || !inputPhrase.trim() || !selectedLang} className="w-full bg-[#3B82F6] text-white font-black uppercase text-xs tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
-              {isAnalyzing ? <Loader2 className="animate-spin" /> : <Plus size={20} />} {t.btnAnalyze}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2 text-slate-500">
-              <BarChart2 size={16} className="text-blue-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{t.dictLabel} {selectedLang ? LANGUAGES_MAP[selectedLang].name : ''}</span>
+              <button 
+                onClick={() => setIsPhraseMode(true)} 
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isPhraseMode ? (isDarkMode ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-blue-600 shadow-sm') : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <AlignLeft size={14} /> {t.phraseMode}
+              </button>
             </div>
-            <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full uppercase">{words.length} {t.words}</span>
-          </div>
-          
-          <div className="space-y-3">
-            {filteredList.filter(w => w.frequency >= 3).map(w => (
-              <SwipeableCard 
-                key={w.id} 
-                item={w} 
-                isDarkMode={isDarkMode} 
-                onDecrement={() => handleDecrement(w.id)} 
-                onIncrement={() => handleIncrement(w.id)} 
-                onEdit={handleEditMeaning}
-                onMarkLearned={handleMarkLearned}
-                t={t}
+
+            <div className="p-6 pb-2">
+              <textarea
+                ref={textareaRef}
+                placeholder={isPhraseMode ? t.placeholderPhrase : t.placeholderWord}
+                className={`w-full rounded-2xl p-4 border-none focus:ring-0 text-lg resize-none outline-none h-28 transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-100/50 text-slate-900'}`}
+                value={inputPhrase}
+                onChange={(e) => setInputPhrase(e.target.value)}
               />
-            ))}
+            </div>
+
+            <div className={`h-12 border-t flex items-center px-4 gap-2 overflow-x-auto no-scrollbar ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+              {suggestions.length > 0 ? suggestions.map((s, i) => (
+                <button key={i} onClick={() => applySuggestion(s.term)} className="whitespace-nowrap bg-blue-500/10 text-blue-400 text-[11px] font-black uppercase px-4 py-2 rounded-full flex items-center gap-1.5 border border-blue-500/20">
+                  <Sparkles size={12} /> {s.term}
+                </button>
+              )) : <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-2">{t.autoType}</span>}
+            </div>
+
+            <div className="p-4">
+              <button onClick={handleAnalysis} disabled={isAnalyzing || !inputPhrase.trim() || !selectedLang} className="w-full bg-[#3B82F6] text-white font-black uppercase text-xs tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
+                {isAnalyzing ? <Loader2 className="animate-spin" /> : <Plus size={20} />} {isPhraseMode ? t.btnAnalyzePhrase : t.btnAnalyzeWord}
+              </button>
+            </div>
           </div>
 
-          {filteredList.filter(w => w.frequency < 3).length > 0 && (
-            <div className="pt-2">
-              <button onClick={() => setShowLowFreq(!showLowFreq)} className={`flex items-center justify-between w-full p-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
-                <span>{t.lessUsed} ({filteredList.filter(w => w.frequency < 3).length})</span>
-                {showLowFreq ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-              {showLowFreq && <div className="mt-2 space-y-3">{filteredList.filter(w => w.frequency < 3).map(w => (
-                <SwipeableCard 
-                   key={w.id} 
-                   item={w} 
-                   isDarkMode={isDarkMode} 
-                   onDecrement={() => handleDecrement(w.id)} 
-                   onIncrement={() => handleIncrement(w.id)} 
-                   onEdit={handleEditMeaning}
-                   onMarkLearned={handleMarkLearned}
-                   t={t}
-                />
-              ))}</div>}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2 text-slate-500">
+                <BarChart2 size={16} className="text-blue-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{t.dictLabel} {selectedLang ? LANGUAGES_MAP[selectedLang].name : ''}</span>
+              </div>
+              <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full uppercase">{words.length} {t.words}</span>
             </div>
-          )}
+            
+            <div className="space-y-3">
+              {filteredList.filter(w => w.frequency >= 3).map(w => (
+                <SwipeableCard 
+                  key={w.id} 
+                  item={w} 
+                  isDarkMode={isDarkMode} 
+                  onDecrement={() => handleDecrement(w.id)} 
+                  onIncrement={() => handleIncrement(w.id)} 
+                  onEdit={handleEditMeaning}
+                  onMarkLearned={handleMarkLearned}
+                  t={t}
+                />
+              ))}
+            </div>
+
+            {filteredList.filter(w => w.frequency < 3).length > 0 && (
+              <div className="pt-2 relative">
+                <button onClick={() => setShowLowFreq(!showLowFreq)} className={`flex items-center justify-between w-full p-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
+                  <span>{t.lessUsed} ({filteredList.filter(w => w.frequency < 3).length})</span>
+                  {showLowFreq ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                {showLowFreq && (
+                  <div className="mt-2 space-y-3 animate-in fade-in slide-in-from-top-2">
+                    {filteredList.filter(w => w.frequency < 3).map(w => (
+                      <SwipeableCard 
+                        key={w.id} 
+                        item={w} 
+                        isDarkMode={isDarkMode} 
+                        onDecrement={() => handleDecrement(w.id)} 
+                        onIncrement={() => handleIncrement(w.id)} 
+                        onEdit={handleEditMeaning}
+                        onMarkLearned={handleMarkLearned}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
-      <footer className={`fixed bottom-0 left-0 right-0 border-t p-4 pb-12 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-colors flex flex-col justify-end ${isDarkMode ? 'bg-[#0b101b]/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+      <footer className={`relative shrink-0 border-t p-4 z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-colors flex flex-col justify-end ${isDarkMode ? 'bg-[#0b101b] border-slate-800' : 'bg-white border-slate-200'}`}>
+        {/* FRECCIA IN SU PER CHIUDERE LE PAROLE ESPANSE */}
+        {showLowFreq && (
+          <button 
+            onClick={() => setShowLowFreq(false)}
+            className={`absolute left-1/2 -translate-x-1/2 -top-10 flex items-center justify-center w-20 h-10 rounded-t-2xl border-t border-l border-r transition-colors active:scale-95 z-50 ${isDarkMode ? 'bg-[#0b101b] border-slate-800 text-blue-400' : 'bg-white border-slate-200 text-blue-500'}`}
+            aria-label="Chiudi visualizzazione parole"
+          >
+            <ChevronUp size={28} strokeWidth={3} />
+          </button>
+        )}
+        
         <div className="max-w-lg w-full mx-auto space-y-2">
           {searchSuggestions.length > 0 && (
             <div className="flex gap-2 overflow-x-auto no-scrollbar mb-2">
@@ -639,38 +745,46 @@ export default function App() {
         </div>
       </footer>
 
-      {/* POPUP SETTINGS */}
+      {/* POPUP SETTINGS (Target Lang + Import/Export) */}
       {showSettings && (
         <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[70] flex items-center justify-center p-6">
-          <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 relative ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+          <div className={`rounded-[3rem] w-full max-w-sm p-8 text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 relative ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
             <button onClick={() => setShowSettings(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-90 transition-all">
               <X size={20} />
             </button>
 
-            <div className="flex justify-center mb-4">
-              <div className={`p-6 rounded-full shadow-inner ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                 <Settings size={48} className="text-slate-400" />
+            <div className="flex justify-center mb-2">
+              <div className={`p-5 rounded-full shadow-inner ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                 <Settings size={40} className="text-slate-400" />
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h2 className={`text-2xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {t.settings}
-              </h2>
+            <h2 className={`text-2xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              {t.settings}
+            </h2>
+
+            {/* Selezione Lingua Target */}
+            <div className={`p-4 rounded-[1.5rem] border text-left space-y-3 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+               <label className="text-[10px] font-black uppercase tracking-widest text-blue-500">{t.targetLang}</label>
+               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                 {Object.entries(LANGUAGES_MAP).map(([key, lang]) => (
+                   <button 
+                     key={key} 
+                     onClick={() => setTargetLang(key)} 
+                     className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${targetLang === key ? 'bg-[#3B82F6] text-white shadow-md' : isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500 border'}`}
+                   >
+                     <span>{lang.flag}</span> <span>{lang.name}</span>
+                   </button>
+                 ))}
+               </div>
             </div>
 
-            <div className="flex flex-col gap-4 pt-2">
+            <div className="flex flex-col gap-3 pt-2">
               <button onClick={handleExportData} className="w-full py-4 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2">
                 <Download size={18} /> {t.export}
               </button>
 
-              <input 
-                type="file" 
-                accept=".json" 
-                ref={fileInputRef} 
-                onChange={handleImportData} 
-                className="hidden" 
-              />
+              <input type="file" accept=".json" ref={fileInputRef} onChange={handleImportData} className="hidden" />
 
               <button onClick={() => fileInputRef.current.click()} className={`w-full py-4 rounded-[1.5rem] font-black uppercase text-xs tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-sm'}`}>
                 <Upload size={18} /> {t.import}
@@ -680,7 +794,7 @@ export default function App() {
         </div>
       )}
 
-      {/* POPUP TUTORIAL A STEP */}
+      {/* POPUP TUTORIAL */}
       {showTutorial && (
         <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[70] flex items-center justify-center p-6">
           <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 relative ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
@@ -703,14 +817,12 @@ export default function App() {
               </p>
             </div>
 
-            {/* Indicatori Step */}
             <div className="flex justify-center gap-2 py-2">
               {tutorialData.map((_, idx) => (
                 <div key={idx} className={`h-2 rounded-full transition-all duration-300 ${tutorialStep === idx ? 'w-6 bg-[#3B82F6]' : 'w-2 bg-slate-300 dark:bg-slate-700'}`} />
               ))}
             </div>
 
-            {/* Navigazione */}
             <div className="flex gap-3 pt-2">
               {tutorialStep > 0 && (
                 <button onClick={() => setTutorialStep(prev => prev - 1)} className={`py-4 px-6 rounded-[1.5rem] font-bold uppercase text-xs tracking-widest transition-all ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
@@ -719,11 +831,8 @@ export default function App() {
               )}
               <button 
                 onClick={() => {
-                  if (tutorialStep < tutorialData.length - 1) {
-                    setTutorialStep(prev => prev + 1);
-                  } else {
-                    setShowTutorial(false);
-                  }
+                  if (tutorialStep < tutorialData.length - 1) setTutorialStep(prev => prev + 1);
+                  else setShowTutorial(false);
                 }} 
                 className="flex-1 py-4 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40"
               >
@@ -770,20 +879,32 @@ export default function App() {
         </div>
       )}
 
+      {/* POPUP TRADUZIONE / SIGNIFICATO ATTIVO */}
       {activePopupWord && (
         <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[60] flex items-center justify-center p-6">
-          <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 border-t-[12px] border-blue-500 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+          <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 border-t-[12px] border-blue-500 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
             <div className="bg-blue-500/10 w-24 h-24 rounded-full flex items-center justify-center mx-auto text-blue-500 shadow-inner"><BookOpen size={48} /></div>
             <div className="space-y-3">
               <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">{t.popupTitle}</h2>
               <div className={`text-4xl font-black capitalize tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{activePopupWord.term}</div>
-              <p className="text-2xl text-slate-500 font-bold italic leading-tight">"{activePopupWord.meaning}"</p>
+              <p className="text-xl text-slate-500 font-bold italic leading-tight">"{activePopupWord.meaning}"</p>
+              
+              {/* Mostra Sinonimi nel Popup se ci sono */}
+              {activePopupWord.synonyms && activePopupWord.synonyms.length > 0 && (
+                <div className="pt-4 flex flex-wrap justify-center gap-1.5">
+                  <span className="text-[10px] w-full block font-black uppercase text-slate-400 mb-1">{t.synonyms}</span>
+                  {activePopupWord.synonyms.map((s, i) => (
+                     <span key={i} className={`text-xs px-3 py-1.5 rounded-lg font-bold ${isDarkMode ? 'bg-slate-800 text-blue-400' : 'bg-slate-100 text-blue-500'}`}>{s}</span>
+                  ))}
+                </div>
+              )}
             </div>
-            <button onClick={() => setActivePopupWord(null)} className="w-full py-5 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-sm tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40">{t.popupButton}</button>
+            <button onClick={() => setActivePopupWord(null)} className="w-full mt-4 py-5 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-sm tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40">{t.popupButton}</button>
           </div>
         </div>
       )}
 
+      {/* INSTALLAZIONE */}
       {showInstallGuide && (
         <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
           <div className={`rounded-[2.5rem] w-full max-w-sm p-8 space-y-6 animate-in slide-in-from-bottom duration-300 shadow-2xl ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
@@ -854,7 +975,6 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
   return (
     <div className={`relative overflow-hidden rounded-[1.8rem] shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-200 border-slate-100'}`}>
       
-      {/* Sfondo Dinamico in base alla direzione dello swipe (appare solo se l'offset non è 0) */}
       <div className={`absolute inset-0 flex items-center px-8 text-white ${offset > 0 ? 'bg-emerald-500 justify-start' : offset < 0 ? 'bg-red-600 justify-end' : 'opacity-0'}`}>
         {offset > 0 ? (
           <div className="flex flex-col items-center">
@@ -882,10 +1002,10 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
         onMouseUp={handleEnd}
         onMouseLeave={handleEnd}
       >
-        <div className="flex justify-between items-center w-full">
+        <div className="flex justify-between items-start w-full">
           <div className="select-none flex-1 pr-4">
-            <h3 className="font-black text-xl capitalize tracking-tight leading-tight flex items-center gap-2">
-               {item.term}
+            <h3 className="font-black text-xl tracking-tight leading-tight flex items-center gap-2">
+               <span className={item.type === 'phrase' ? 'normal-case' : 'capitalize'}>{item.term}</span>
                {item.isManuallyEdited && <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full" title="Modificata manualmente"></span>}
             </h3>
             
@@ -902,21 +1022,30 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
                  className={`mt-1 w-full text-sm font-medium italic border-b-2 outline-none bg-transparent ${isDarkMode ? 'border-blue-500 text-slate-300' : 'border-blue-500 text-slate-600'}`}
               />
             ) : (
-              <p 
-                 onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                 className="text-slate-500 text-sm font-medium italic mt-1 leading-tight cursor-text flex items-center gap-1.5 group"
-              >
-                "{item.meaning}"
-                <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-              </p>
+              <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} className="cursor-text group">
+                <p className="text-slate-500 text-sm font-medium italic mt-1 leading-tight flex items-center gap-1.5">
+                  "{item.meaning}"
+                  <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </p>
+              </div>
+            )}
+
+            {/* Area Sinonimi per le parole (non visibile per le frasi) */}
+            {item.synonyms && item.synonyms.length > 0 && (
+               <div className="flex flex-wrap gap-1 mt-3">
+                  <span className="text-[9px] font-black uppercase text-slate-400 mr-1 mt-0.5">{t.synonyms}:</span>
+                  {item.synonyms.map((s, i) => (
+                    <span key={i} className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isDarkMode ? 'bg-slate-800 text-blue-400' : 'bg-slate-100 text-blue-500'}`}>{s}</span>
+                  ))}
+               </div>
             )}
           </div>
+          
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border shadow-inner shrink-0 transition-all ${isDarkMode ? 'bg-blue-500/20 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-[#3B82F6] border-blue-100'}`}>
             {item.frequency}
           </div>
         </div>
 
-        {/* Pulsante "Segna come imparata" visibile dopo 70 visualizzazioni */}
         {item.frequency > 70 && (
            <button 
              onMouseDown={(e) => e.stopPropagation()}
@@ -931,3 +1060,5 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
     </div>
   );
 }
+
+
