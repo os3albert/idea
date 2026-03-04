@@ -3,24 +3,6 @@ import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Tr
 
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
-  const meta = [
-    { name: 'apple-mobile-web-app-capable', content: 'yes' },
-    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-    { name: 'apple-mobile-web-app-title', content: 'Vocab Pro' },
-    { name: 'mobile-web-app-capable', content: 'yes' },
-    { name: 'theme-color', content: '#0F172A' }
-  ];
-  
-  meta.forEach(({ name, content }) => {
-    let el = document.querySelector(`meta[name="${name}"]`);
-    if (!el) {
-      el = document.createElement('meta');
-      el.name = name;
-      document.head.appendChild(el);
-    }
-    el.content = content;
-  });
-
   const iconSvg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
       <rect x="64" y="64" width="896" height="896" rx="220" fill="#0F172A"/>
@@ -33,6 +15,50 @@ const setupPWA = () => {
   const iconBlob = new Blob([iconSvg], { type: 'image/svg+xml' });
   const iconUrl = URL.createObjectURL(iconBlob);
 
+  // 1. Meta tags per mobile
+  const metaTags = [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'apple-mobile-web-app-title', content: 'Vocab Pro' },
+    { name: 'mobile-web-app-capable', content: 'yes' },
+    { name: 'theme-color', content: '#0F172A' }
+  ];
+  
+  metaTags.forEach(({ name, content }) => {
+    let el = document.querySelector(`meta[name="${name}"]`);
+    if (!el) {
+      el = document.createElement('meta');
+      el.name = name;
+      document.head.appendChild(el);
+    }
+    el.content = content;
+  });
+
+  // 2. Pulizia aggressiva delle icone di default di React
+  const selectorsToRemove = [
+    'link[rel="icon"]',
+    'link[rel="apple-touch-icon"]',
+    'link[rel="shortcut icon"]',
+    'link[rel="manifest"]'
+  ];
+  selectorsToRemove.forEach(selector => {
+    document.querySelectorAll(selector).forEach(el => el.remove());
+  });
+
+  // 3. Iniezione nuova Favicon (per browser)
+  const favicon = document.createElement('link');
+  favicon.rel = 'icon';
+  favicon.type = 'image/svg+xml';
+  favicon.href = iconUrl;
+  document.head.appendChild(favicon);
+
+  // 4. Iniezione Apple Touch Icon (per iPhone)
+  const appleIcon = document.createElement('link');
+  appleIcon.rel = 'apple-touch-icon';
+  appleIcon.href = iconUrl;
+  document.head.appendChild(appleIcon);
+
+  // 5. Iniezione Manifest (per Android/Installazione)
   const manifest = {
     name: 'Vocab Pro',
     short_name: 'VocabPro',
@@ -50,14 +76,10 @@ const setupPWA = () => {
 
   const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   const manifestURL = URL.createObjectURL(manifestBlob);
-  
-  let link = document.querySelector('link[rel="manifest"]');
-  if (!link) {
-    link = document.createElement('link');
-    link.rel = 'manifest';
-    document.head.appendChild(link);
-  }
-  link.href = manifestURL;
+  const manifestLink = document.createElement('link');
+  manifestLink.rel = 'manifest';
+  manifestLink.href = manifestURL;
+  document.head.appendChild(manifestLink);
 };
 
 // Mappa delle lingue supportate
@@ -68,7 +90,6 @@ const LANGUAGES_MAP = {
   tr: { name: 'Turco', flag: '🇹🇷', code: 'tr' }
 };
 
-// Componente per l'icona SVG personalizzata
 const AppIcon = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" className={className}>
     <rect x="64" y="64" width="896" height="896" rx="220" fill="#0F172A"/>
@@ -238,11 +259,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 pb-44 font-sans overflow-x-hidden">
-      {/* Header - Navy Background (#0F172A) */}
       <header className="bg-[#0F172A] pt-12 pb-6 px-6 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
-            {/* Visualizzazione Icona SVG nell'Header */}
             <div className="w-12 h-12 flex items-center justify-center drop-shadow-md">
               <AppIcon className="w-full h-full" />
             </div>
@@ -279,7 +298,7 @@ export default function App() {
           <div className="p-5 pb-1">
             <textarea
               ref={textareaRef}
-              placeholder={`Scrivi una frase in ${LANGUAGES_MAP[selectedLang].name.toLowerCase()}...`}
+              placeholder={`Scrivi una frase in ${LANGUAGES_MAP[selectedLang]?.name?.toLowerCase() || 'spagnolo'}...`}
               className="w-full bg-slate-50 rounded-2xl p-4 border-none focus:ring-0 text-lg resize-none outline-none h-32"
               value={inputPhrase}
               onChange={(e) => setInputPhrase(e.target.value)}
@@ -319,7 +338,7 @@ export default function App() {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 text-slate-400">
               <BarChart2 size={16} className="text-blue-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Dizionario {LANGUAGES_MAP[selectedLang].name}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Dizionario {LANGUAGES_MAP[selectedLang]?.name}</span>
             </div>
             <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">
               {words.length} Parole
