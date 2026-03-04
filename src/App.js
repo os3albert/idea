@@ -294,8 +294,6 @@ export default function App() {
     let newWords = [...words];
     let lastToPop = null;
 
-    const allKnownTerms = new Set([...words.map(w=>w.term), ...learnedWords.map(w=>w.term)]);
-
     for (const word of uniqueWords) {
       if (learnedWords.some(w => w.term === word)) {
           continue;
@@ -493,12 +491,16 @@ export default function App() {
           <div className="relative flex items-center gap-3">
             <button 
               onClick={() => setShowLearnedModal(true)} 
-              className={`p-4 rounded-[1.5rem] shrink-0 transition-colors ${learnedWords.length > 0 ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/20' : isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}
+              className={`p-4 rounded-[1.5rem] shrink-0 transition-colors flex items-center justify-center ${learnedWords.length > 0 ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/20' : isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}
             >
-               <GraduationCap size={20} />
-               {learnedWords.length > 0 && (
-                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">{learnedWords.length}</span>
-               )}
+               <div className="relative">
+                 <GraduationCap size={20} />
+                 {learnedWords.length > 0 && (
+                   <span className="absolute -top-2.5 -right-2.5 bg-[#3B82F6] text-white text-[9px] font-black min-w-[18px] h-[18px] flex items-center justify-center rounded-full border-[2px] border-yellow-400">
+                     {learnedWords.length}
+                   </span>
+                 )}
+               </div>
             </button>
 
             <div className="relative flex-1 flex items-center">
@@ -658,24 +660,34 @@ export default function App() {
 
 function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onMarkLearned, t }) {
   const [offset, setOffset] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(item.meaning);
   const startX = useRef(0);
   const isDragging = useRef(false);
   const threshold = 80;
 
+  const handleStart = (clientX) => {
+    startX.current = clientX;
+    isDragging.current = true;
+    setIsSwiping(true);
+  };
+
+  const handleMove = (clientX) => {
+    if (!isDragging.current) return;
+    const diff = clientX - startX.current;
+    setOffset(diff);
+  };
+
   const handleEnd = () => {
     if (!isDragging.current) return;
     isDragging.current = false;
+    setIsSwiping(false);
     if (offset < -threshold) {
       if (item.frequency <= 1) { setOffset(-window.innerWidth); setTimeout(onDecrement, 200); }
       else { onDecrement(); setOffset(0); }
     } else if (offset > threshold) { onIncrement(); setOffset(0); }
     else { setOffset(0); }
-  };
-
-  const handleMove = (clientX) => {
-    if(isDragging.current) setOffset(clientX - startX.current);
   };
 
   const saveEdit = () => {
@@ -686,10 +698,10 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-[1.8rem] shadow-sm border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-200 border-slate-100'}`}>
+    <div className={`relative overflow-hidden rounded-[1.8rem] shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-200 border-slate-100'}`}>
       
-      {/* Sfondo Dinamico Unico in base alla direzione dello swipe */}
-      <div className={`absolute inset-0 flex items-center px-8 text-white transition-colors duration-300 ${offset > 0 ? 'bg-emerald-500 justify-start' : 'bg-red-600 justify-end'}`}>
+      {/* Sfondo Dinamico in base alla direzione dello swipe (appare solo se l'offset non è 0) */}
+      <div className={`absolute inset-0 flex items-center px-8 text-white ${offset > 0 ? 'bg-emerald-500 justify-start' : offset < 0 ? 'bg-red-600 justify-end' : 'opacity-0'}`}>
         {offset > 0 ? (
           <div className="flex flex-col items-center">
             <CheckCircle2 size={24} />
@@ -706,12 +718,12 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
       </div>
 
       <div 
-        className={`relative p-6 flex flex-col justify-between transition-transform duration-200 ease-out touch-pan-y cursor-grab ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}
+        className={`relative p-6 flex flex-col justify-between ease-out touch-pan-y cursor-grab ${!isSwiping ? 'transition-transform duration-200' : ''} ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}
         style={{ transform: `translateX(${offset}px)` }}
-        onTouchStart={(e) => { startX.current = e.touches[0].clientX; isDragging.current = true; }}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
         onTouchMove={(e) => handleMove(e.touches[0].clientX)}
         onTouchEnd={handleEnd}
-        onMouseDown={(e) => { startX.current = e.clientX; isDragging.current = true; }}
+        onMouseDown={(e) => handleStart(e.clientX)}
         onMouseMove={(e) => handleMove(e.clientX)}
         onMouseUp={handleEnd}
         onMouseLeave={handleEnd}
