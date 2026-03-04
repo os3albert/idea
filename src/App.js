@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw } from 'lucide-react';
+import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw, HelpCircle } from 'lucide-react';
 
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
@@ -23,7 +23,18 @@ const UI_STRINGS = {
     learned: "Palabras aprendidas",
     markLearned: "Marcar como aprendida",
     noLearned: "Aún no hay palabras aprendidas",
-    unmarkLearned: "Devolver a estudio"
+    unmarkLearned: "Devolver a estudio",
+    tut1Title: "¡Bienvenido a Vocab Pro!",
+    tut1Desc: "Escribe una frase y extraeremos y traduciremos las palabras automáticamente para ti.",
+    tut2Title: "Desliza a la Derecha",
+    tut2Desc: "Desliza una tarjeta hacia la derecha para aumentar su frecuencia de estudio (+1).",
+    tut3Title: "Desliza a la Izquierda",
+    tut3Desc: "Desliza hacia la izquierda para restar frecuencia o eliminar la palabra si ya no la necesitas.",
+    tut4Title: "Edita y Aprende",
+    tut4Desc: "Toca el significado para editarlo manualmente. ¡Llega a 70 vistas para marcar la palabra como aprendida!",
+    tutNext: "Siguiente",
+    tutPrev: "Anterior",
+    tutFinish: "¡Empezar!"
   },
   en: {
     subtitle: "Language Lab",
@@ -40,7 +51,18 @@ const UI_STRINGS = {
     learned: "Learned Words",
     markLearned: "Mark as learned",
     noLearned: "No learned words yet",
-    unmarkLearned: "Return to study"
+    unmarkLearned: "Return to study",
+    tut1Title: "Welcome to Vocab Pro!",
+    tut1Desc: "Write a sentence and we will automatically extract and translate the words for you.",
+    tut2Title: "Swipe Right",
+    tut2Desc: "Swipe a card to the right to increase its study frequency (+1).",
+    tut3Title: "Swipe Left",
+    tut3Desc: "Swipe left to decrease the frequency or delete the word if you no longer need it.",
+    tut4Title: "Edit & Learn",
+    tut4Desc: "Tap the meaning to edit it manually. Reach 70 views to mark the word as learned!",
+    tutNext: "Next",
+    tutPrev: "Back",
+    tutFinish: "Start!"
   },
   fr: {
     subtitle: "Labo de Langues",
@@ -57,7 +79,18 @@ const UI_STRINGS = {
     learned: "Mots appris",
     markLearned: "Marquer comme appris",
     noLearned: "Pas encore de mots appris",
-    unmarkLearned: "Retourner à l'étude"
+    unmarkLearned: "Retourner à l'étude",
+    tut1Title: "Bienvenue sur Vocab Pro !",
+    tut1Desc: "Écrivez une phrase et nous extrairons et traduirons automatiquement les mots pour vous.",
+    tut2Title: "Glissez à Droite",
+    tut2Desc: "Glissez une carte vers la droite pour augmenter sa fréquence d'étude (+1).",
+    tut3Title: "Glissez à Gauche",
+    tut3Desc: "Glissez vers la gauche pour réduire la fréquence ou supprimer le mot.",
+    tut4Title: "Éditer et Apprendre",
+    tut4Desc: "Appuyez sur la traduction pour la modifier. Atteignez 70 vues pour marquer le mot comme appris !",
+    tutNext: "Suivant",
+    tutPrev: "Retour",
+    tutFinish: "Commencer !"
   },
   it: {
     subtitle: "Laboratorio Linguistico",
@@ -74,7 +107,18 @@ const UI_STRINGS = {
     learned: "Parole imparate",
     markLearned: "Segna come imparata",
     noLearned: "Nessuna parola imparata",
-    unmarkLearned: "Riporta allo studio"
+    unmarkLearned: "Riporta allo studio",
+    tut1Title: "Benvenuto in Vocab Pro!",
+    tut1Desc: "Scrivi una frase e noi estrarremo e tradurremo automaticamente le parole per te.",
+    tut2Title: "Scorri a Destra",
+    tut2Desc: "Scorri una card verso destra per aumentare la sua frequenza di studio (+1).",
+    tut3Title: "Scorri a Sinistra",
+    tut3Desc: "Scorri verso sinistra per ridurre la frequenza o eliminare la parola se non ti serve più.",
+    tut4Title: "Modifica e Impara",
+    tut4Desc: "Tocca il significato per modificarlo manualmente. Raggiungi 70 visualizzazioni per segnare la parola come imparata!",
+    tutNext: "Avanti",
+    tutPrev: "Indietro",
+    tutFinish: "Inizia!"
   },
   tr: {
     subtitle: "Dil Laboratuvarı",
@@ -91,7 +135,18 @@ const UI_STRINGS = {
     learned: "Öğrenilen Kelimeler",
     markLearned: "Öğrenildi olarak işaretle",
     noLearned: "Henüz öğrenilen kelime yok",
-    unmarkLearned: "Çalışmaya geri dön"
+    unmarkLearned: "Çalışmaya geri dön",
+    tut1Title: "Vocab Pro'ya Hoş Geldiniz!",
+    tut1Desc: "Bir cümle yazın, kelimeleri sizin için otomatik olarak çıkarıp çevirelim.",
+    tut2Title: "Sağa Kaydır",
+    tut2Desc: "Çalışma sıklığını artırmak için bir kartı sağa kaydırın (+1).",
+    tut3Title: "Sola Kaydır",
+    tut3Desc: "Sıklığı azaltmak veya kelimeyi silmek için sola kaydırın.",
+    tut4Title: "Düzenle ve Öğren",
+    tut4Desc: "Manuel düzenlemek için anlama dokunun. Kelimeyi öğrenildi işaretlemek için 70 görüntülemeye ulaşın!",
+    tutNext: "İleri",
+    tutPrev: "Geri",
+    tutFinish: "Başla!"
   }
 };
 
@@ -125,6 +180,11 @@ export default function App() {
   const [showLowFreq, setShowLowFreq] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [showLearnedModal, setShowLearnedModal] = useState(false);
+  
+  // Tutorial State
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
   const [suggestions, setSuggestions] = useState([]);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [activePopupWord, setActivePopupWord] = useState(null);
@@ -234,11 +294,9 @@ export default function App() {
     let newWords = [...words];
     let lastToPop = null;
 
-    // Controllo anche tra le parole imparate, per non resettarle se riappaiono
     const allKnownTerms = new Set([...words.map(w=>w.term), ...learnedWords.map(w=>w.term)]);
 
     for (const word of uniqueWords) {
-      // Se la parola è tra quelle "imparate", la saltiamo (non serve rianalizzarla)
       if (learnedWords.some(w => w.term === word)) {
           continue;
       }
@@ -246,7 +304,6 @@ export default function App() {
       const existingIdx = newWords.findIndex(w => w.term === word);
       if (existingIdx > -1) {
         const updatedFreq = newWords[existingIdx].frequency + 1;
-        // Non sovrascrive il significato
         newWords[existingIdx] = { ...newWords[existingIdx], frequency: updatedFreq, lastUpdated: new Date().toISOString() };
         if (updatedFreq <= 10) lastToPop = { term: word, meaning: newWords[existingIdx].meaning };
       } else {
@@ -299,6 +356,14 @@ export default function App() {
     return words.filter(w => w.term.toLowerCase().includes(searchQuery.toLowerCase()) || w.meaning.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.frequency - a.frequency);
   }, [words, searchQuery]);
 
+  // Array dei contenuti del Tutorial
+  const tutorialData = [
+    { title: t.tut1Title, desc: t.tut1Desc, icon: <Languages size={48} className="text-[#3B82F6]" /> },
+    { title: t.tut2Title, desc: t.tut2Desc, icon: <CheckCircle2 size={48} className="text-emerald-500" /> },
+    { title: t.tut3Title, desc: t.tut3Desc, icon: <MinusCircle size={48} className="text-red-500" /> },
+    { title: t.tut4Title, desc: t.tut4Desc, icon: <Edit2 size={48} className="text-yellow-500" /> }
+  ];
+
   return (
     <div className={`flex flex-col min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0b101b] text-slate-200' : 'bg-slate-50 text-slate-900'} pb-44 font-sans overflow-x-hidden`}>
       <header className="bg-[#0F172A] pt-12 pb-6 px-4 text-white shadow-lg sticky top-0 z-30 flex flex-col gap-4 border-b border-slate-800">
@@ -315,7 +380,10 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={() => { setTutorialStep(0); setShowTutorial(true); }} className="p-2.5 bg-slate-800 rounded-full text-slate-300 hover:text-white border border-slate-700 active:scale-90 transition-all">
+              <HelpCircle size={18} />
+            </button>
             <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 bg-slate-800 rounded-full text-yellow-400 border border-slate-700 active:scale-90 transition-all">
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -325,7 +393,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Selettore Lingue Ottimizzato per Mobile */}
         <div className="flex items-center gap-1.5 bg-slate-800/50 p-1.5 rounded-2xl border border-slate-700 overflow-x-auto no-scrollbar">
           {Object.entries(LANGUAGES_MAP).map(([key, lang]) => (
             <button 
@@ -457,6 +524,60 @@ export default function App() {
         </div>
       </footer>
 
+      {/* POPUP TUTORIAL A STEP */}
+      {showTutorial && (
+        <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[70] flex items-center justify-center p-6">
+          <div className={`rounded-[3rem] w-full max-w-sm p-10 text-center space-y-8 shadow-2xl animate-in zoom-in-95 duration-200 relative ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+            <button onClick={() => setShowTutorial(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 active:scale-90 transition-all">
+              <X size={20} />
+            </button>
+
+            <div className="flex justify-center mb-4">
+              <div className={`p-6 rounded-full shadow-inner ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                 {tutorialData[tutorialStep].icon}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className={`text-2xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {tutorialData[tutorialStep].title}
+              </h2>
+              <p className="text-slate-500 font-medium leading-relaxed">
+                {tutorialData[tutorialStep].desc}
+              </p>
+            </div>
+
+            {/* Indicatori Step */}
+            <div className="flex justify-center gap-2 py-2">
+              {tutorialData.map((_, idx) => (
+                <div key={idx} className={`h-2 rounded-full transition-all duration-300 ${tutorialStep === idx ? 'w-6 bg-[#3B82F6]' : 'w-2 bg-slate-300 dark:bg-slate-700'}`} />
+              ))}
+            </div>
+
+            {/* Navigazione */}
+            <div className="flex gap-3 pt-2">
+              {tutorialStep > 0 && (
+                <button onClick={() => setTutorialStep(prev => prev - 1)} className={`py-4 px-6 rounded-[1.5rem] font-bold uppercase text-xs tracking-widest transition-all ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  {t.tutPrev}
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  if (tutorialStep < tutorialData.length - 1) {
+                    setTutorialStep(prev => prev + 1);
+                  } else {
+                    setShowTutorial(false);
+                  }
+                }} 
+                className="flex-1 py-4 bg-[#3B82F6] text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest active:scale-95 transition-all shadow-xl shadow-blue-500/40"
+              >
+                {tutorialStep < tutorialData.length - 1 ? t.tutNext : t.tutFinish}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* POPUP PAROLE IMPARATE */}
       {showLearnedModal && (
         <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[60] flex flex-col p-4 pb-20 overflow-y-auto">
@@ -566,15 +687,24 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onM
 
   return (
     <div className={`relative overflow-hidden rounded-[1.8rem] shadow-sm border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-200 border-slate-100'}`}>
-      <div className="absolute inset-y-0 right-0 w-full bg-red-600 flex items-center justify-end px-8 text-white transition-all">
-        <div className="flex flex-col items-center">
-          {item.frequency <= 1 ? <Trash2 size={24} /> : <MinusCircle size={24} />}
-          <span className="text-[10px] font-black uppercase mt-2 tracking-widest">{item.frequency <= 1 ? 'Elimina' : '-1'}</span>
-        </div>
+      
+      {/* Sfondo Dinamico Unico in base alla direzione dello swipe */}
+      <div className={`absolute inset-0 flex items-center px-8 text-white transition-colors duration-300 ${offset > 0 ? 'bg-emerald-500 justify-start' : 'bg-red-600 justify-end'}`}>
+        {offset > 0 ? (
+          <div className="flex flex-col items-center">
+            <CheckCircle2 size={24} />
+            <span className="text-[10px] font-black uppercase mt-2 tracking-widest">+1</span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            {item.frequency <= 1 ? <Trash2 size={24} /> : <MinusCircle size={24} />}
+            <span className="text-[10px] font-black uppercase mt-2 tracking-widest">
+              {item.frequency <= 1 ? 'Elimina' : '-1'}
+            </span>
+          </div>
+        )}
       </div>
-      <div className="absolute inset-y-0 left-0 w-full bg-emerald-500 flex items-center justify-start px-8 text-white transition-all">
-        <div className="flex flex-col items-center"><CheckCircle2 size={24} /><span className="text-[10px] font-black uppercase mt-2 tracking-widest">+1</span></div>
-      </div>
+
       <div 
         className={`relative p-6 flex flex-col justify-between transition-transform duration-200 ease-out touch-pan-y cursor-grab ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}
         style={{ transform: `translateX(${offset}px)` }}
