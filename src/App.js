@@ -81,7 +81,7 @@ export default function App() {
     setIsAnalyzing(true);
     
     const cleanedWords = inputPhrase.toLowerCase()
-      .replace(/[.,/#!$%^&*;:{}=\-_`~()?"']/g, "")
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")
       .split(/\s+/)
       .filter(w => w.length >= 3);
     
