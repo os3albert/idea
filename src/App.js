@@ -93,7 +93,11 @@ const AppIcon = ({ className }) => (
 );
 
 export default function App() {
-  const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('vocab_pro_lang') || 'es');
+  const [selectedLang, setSelectedLang] = useState(() => {
+    // Inizializza provvisoriamente con spagnolo se non c'è niente,
+    // verrà sovrascritto subito dal primo useEffect se necessario
+    return localStorage.getItem('vocab_pro_lang') || null; 
+  });
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('vocab_pro_theme') === 'dark');
   const [words, setWords] = useState([]);
   const [inputPhrase, setInputPhrase] = useState("");
@@ -107,7 +111,9 @@ export default function App() {
   const [locationData, setLocationData] = useState(null);
   
   const textareaRef = useRef(null);
-  const t = UI_STRINGS[selectedLang] || UI_STRINGS.en;
+  
+  // Usa lo spagnolo come fallback per le traduzioni se selectedLang non è ancora impostato
+  const t = UI_STRINGS[selectedLang] || UI_STRINGS.es;
 
   // Inizializzazione PWA, Tema e Geolocalizzazione
   useEffect(() => {
@@ -120,14 +126,12 @@ export default function App() {
         const data = await response.json();
         setLocationData(data);
 
-        // Se è la prima volta assoluta, imposta lingua dal paese
-        if (!localStorage.getItem('vocab_pro_lang')) {
+        // Se è la prima volta assoluta (selectedLang è null), imposta lingua dal paese
+        if (!selectedLang) {
           const mapping = { 'ES': 'es', 'GB': 'en', 'US': 'en', 'FR': 'fr', 'IT': 'it', 'TR': 'tr' };
-          if (mapping[data.country_code]) {
-            const lang = mapping[data.country_code];
-            setSelectedLang(lang);
-            localStorage.setItem('vocab_pro_lang', lang);
-          }
+          const defaultLang = mapping[data.country_code] || 'en'; // Fallback all'inglese se il paese non è in lista
+          setSelectedLang(defaultLang);
+          localStorage.setItem('vocab_pro_lang', defaultLang);
         }
         
         // Auto Dark Mode se è sera
@@ -137,20 +141,29 @@ export default function App() {
         }
       } catch (err) {
         console.warn("Location API unavailable.");
+        // Se la chiamata fallisce e non avevamo una lingua salvata, usa lo spagnolo come fallback definitivo
+        if (!selectedLang) {
+             setSelectedLang('es');
+             localStorage.setItem('vocab_pro_lang', 'es');
+        }
       }
     };
     initApp();
-  }, []);
+  }, [selectedLang]);
 
   // Sincronizzazione Lingua e Parole
   useEffect(() => {
-    const saved = localStorage.getItem(`vocab_words_${selectedLang}`);
-    setWords(saved ? JSON.parse(saved) : []);
-    localStorage.setItem('vocab_pro_lang', selectedLang);
+    if (selectedLang) {
+      const saved = localStorage.getItem(`vocab_words_${selectedLang}`);
+      setWords(saved ? JSON.parse(saved) : []);
+      localStorage.setItem('vocab_pro_lang', selectedLang);
+    }
   }, [selectedLang]);
 
   useEffect(() => {
-    localStorage.setItem(`vocab_words_${selectedLang}`, JSON.stringify(words));
+    if (selectedLang) {
+      localStorage.setItem(`vocab_words_${selectedLang}`, JSON.stringify(words));
+    }
   }, [words, selectedLang]);
 
   useEffect(() => {
@@ -308,7 +321,7 @@ export default function App() {
           </div>
 
           <div className="p-4">
-            <button onClick={handleAnalysis} disabled={isAnalyzing || !inputPhrase.trim()} className="w-full bg-[#3B82F6] text-white font-black uppercase text-xs tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
+            <button onClick={handleAnalysis} disabled={isAnalyzing || !inputPhrase.trim() || !selectedLang} className="w-full bg-[#3B82F6] text-white font-black uppercase text-xs tracking-widest py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-blue-500/20">
               {isAnalyzing ? <Loader2 className="animate-spin" /> : <Plus size={20} />} {t.btnAnalyze}
             </button>
           </div>
@@ -318,7 +331,7 @@ export default function App() {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2 text-slate-500">
               <BarChart2 size={16} className="text-blue-500" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{t.dictLabel} {LANGUAGES_MAP[selectedLang].name}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t.dictLabel} {selectedLang ? LANGUAGES_MAP[selectedLang].name : ''}</span>
             </div>
             <span className="text-[10px] font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full uppercase">{words.length} {t.words}</span>
           </div>
