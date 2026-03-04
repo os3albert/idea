@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun } from 'lucide-react';
+import { Search, Plus, BarChart2, ChevronDown, ChevronUp, Loader2, Languages, Trash2, Download, X, CheckCircle2, MinusCircle, BookOpen, Sparkles, Globe, Moon, Sun, Edit2, GraduationCap, RotateCcw } from 'lucide-react';
 
 // --- CONFIGURAZIONE PWA ---
 const setupPWA = () => {
@@ -19,7 +19,11 @@ const UI_STRINGS = {
     popupTitle: "Memoria Activa",
     popupButton: "Entendido",
     install: "Instalar",
-    autoType: "Escritura asistida"
+    autoType: "Escritura asistida",
+    learned: "Palabras aprendidas",
+    markLearned: "Marcar como aprendida",
+    noLearned: "Aún no hay palabras aprendidas",
+    unmarkLearned: "Devolver a estudio"
   },
   en: {
     subtitle: "Language Lab",
@@ -32,7 +36,11 @@ const UI_STRINGS = {
     popupTitle: "Active Memory",
     popupButton: "Got it",
     install: "Install",
-    autoType: "Smart typing"
+    autoType: "Smart typing",
+    learned: "Learned Words",
+    markLearned: "Mark as learned",
+    noLearned: "No learned words yet",
+    unmarkLearned: "Return to study"
   },
   fr: {
     subtitle: "Labo de Langues",
@@ -45,7 +53,11 @@ const UI_STRINGS = {
     popupTitle: "Mémoire Active",
     popupButton: "J'ai compris",
     install: "Installer",
-    autoType: "Saisie assistée"
+    autoType: "Saisie assistée",
+    learned: "Mots appris",
+    markLearned: "Marquer comme appris",
+    noLearned: "Pas encore de mots appris",
+    unmarkLearned: "Retourner à l'étude"
   },
   it: {
     subtitle: "Laboratorio Linguistico",
@@ -58,7 +70,11 @@ const UI_STRINGS = {
     popupTitle: "Memoria Attiva",
     popupButton: "Ho capito",
     install: "Installa",
-    autoType: "Scrittura assistita"
+    autoType: "Scrittura assistita",
+    learned: "Parole imparate",
+    markLearned: "Segna come imparata",
+    noLearned: "Nessuna parola imparata",
+    unmarkLearned: "Riporta allo studio"
   },
   tr: {
     subtitle: "Dil Laboratuvarı",
@@ -71,7 +87,11 @@ const UI_STRINGS = {
     popupTitle: "Aktif Bellek",
     popupButton: "Anladım",
     install: "Yükle",
-    autoType: "Destekli yazım"
+    autoType: "Destekli yazım",
+    learned: "Öğrenilen Kelimeler",
+    markLearned: "Öğrenildi olarak işaretle",
+    noLearned: "Henüz öğrenilen kelime yok",
+    unmarkLearned: "Çalışmaya geri dön"
   }
 };
 
@@ -94,17 +114,17 @@ const AppIcon = ({ className }) => (
 
 export default function App() {
   const [selectedLang, setSelectedLang] = useState(() => {
-    // Inizializza provvisoriamente con spagnolo se non c'è niente,
-    // verrà sovrascritto subito dal primo useEffect se necessario
     return localStorage.getItem('vocab_pro_lang') || null; 
   });
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('vocab_pro_theme') === 'dark');
   const [words, setWords] = useState([]);
+  const [learnedWords, setLearnedWords] = useState([]);
   const [inputPhrase, setInputPhrase] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLowFreq, setShowLowFreq] = useState(false);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [showLearnedModal, setShowLearnedModal] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [activePopupWord, setActivePopupWord] = useState(null);
@@ -112,10 +132,8 @@ export default function App() {
   
   const textareaRef = useRef(null);
   
-  // Usa lo spagnolo come fallback per le traduzioni se selectedLang non è ancora impostato
   const t = UI_STRINGS[selectedLang] || UI_STRINGS.es;
 
-  // Inizializzazione PWA, Tema e Geolocalizzazione
   useEffect(() => {
     setupPWA();
     
@@ -126,22 +144,19 @@ export default function App() {
         const data = await response.json();
         setLocationData(data);
 
-        // Se è la prima volta assoluta (selectedLang è null), imposta lingua dal paese
         if (!selectedLang) {
           const mapping = { 'ES': 'es', 'GB': 'en', 'US': 'en', 'FR': 'fr', 'IT': 'it', 'TR': 'tr' };
-          const defaultLang = mapping[data.country_code] || 'en'; // Fallback all'inglese se il paese non è in lista
+          const defaultLang = mapping[data.country_code] || 'en'; 
           setSelectedLang(defaultLang);
           localStorage.setItem('vocab_pro_lang', defaultLang);
         }
         
-        // Auto Dark Mode se è sera
         const hour = new Date().getHours();
         if ((hour >= 20 || hour <= 7) && !localStorage.getItem('vocab_pro_theme')) {
           setIsDarkMode(true);
         }
       } catch (err) {
         console.warn("Location API unavailable.");
-        // Se la chiamata fallisce e non avevamo una lingua salvata, usa lo spagnolo come fallback definitivo
         if (!selectedLang) {
              setSelectedLang('es');
              localStorage.setItem('vocab_pro_lang', 'es');
@@ -151,11 +166,14 @@ export default function App() {
     initApp();
   }, [selectedLang]);
 
-  // Sincronizzazione Lingua e Parole
   useEffect(() => {
     if (selectedLang) {
       const saved = localStorage.getItem(`vocab_words_${selectedLang}`);
       setWords(saved ? JSON.parse(saved) : []);
+      
+      const savedLearned = localStorage.getItem(`vocab_learned_${selectedLang}`);
+      setLearnedWords(savedLearned ? JSON.parse(savedLearned) : []);
+
       localStorage.setItem('vocab_pro_lang', selectedLang);
     }
   }, [selectedLang]);
@@ -163,14 +181,14 @@ export default function App() {
   useEffect(() => {
     if (selectedLang) {
       localStorage.setItem(`vocab_words_${selectedLang}`, JSON.stringify(words));
+      localStorage.setItem(`vocab_learned_${selectedLang}`, JSON.stringify(learnedWords));
     }
-  }, [words, selectedLang]);
+  }, [words, learnedWords, selectedLang]);
 
   useEffect(() => {
     localStorage.setItem('vocab_pro_theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
-  // Suggerimenti
   useEffect(() => {
     const lastWord = inputPhrase.split(/[\s,.]+/).pop().toLowerCase();
     if (lastWord.length > 1) {
@@ -200,7 +218,6 @@ export default function App() {
 
   const translateWord = async (word) => {
     try {
-      // Traduzione dinamica verso l'italiano (o inglese se la sorgente è italiano)
       const target = selectedLang === 'it' ? 'en' : 'it';
       const pair = `${selectedLang}|${target}`;
       const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=${pair}`);
@@ -217,15 +234,24 @@ export default function App() {
     let newWords = [...words];
     let lastToPop = null;
 
+    // Controllo anche tra le parole imparate, per non resettarle se riappaiono
+    const allKnownTerms = new Set([...words.map(w=>w.term), ...learnedWords.map(w=>w.term)]);
+
     for (const word of uniqueWords) {
+      // Se la parola è tra quelle "imparate", la saltiamo (non serve rianalizzarla)
+      if (learnedWords.some(w => w.term === word)) {
+          continue;
+      }
+
       const existingIdx = newWords.findIndex(w => w.term === word);
       if (existingIdx > -1) {
         const updatedFreq = newWords[existingIdx].frequency + 1;
+        // Non sovrascrive il significato
         newWords[existingIdx] = { ...newWords[existingIdx], frequency: updatedFreq, lastUpdated: new Date().toISOString() };
         if (updatedFreq <= 10) lastToPop = { term: word, meaning: newWords[existingIdx].meaning };
       } else {
         const meaning = await translateWord(word);
-        const newEntry = { id: word, term: word, meaning: meaning, frequency: 1, lastUpdated: new Date().toISOString() };
+        const newEntry = { id: word, term: word, meaning: meaning, frequency: 1, isManuallyEdited: false, lastUpdated: new Date().toISOString() };
         newWords.push(newEntry);
         lastToPop = { term: word, meaning: meaning };
       }
@@ -234,6 +260,20 @@ export default function App() {
     if (lastToPop) setActivePopupWord(lastToPop);
     setInputPhrase("");
     setIsAnalyzing(false);
+  };
+
+  const handleEditMeaning = (id, newMeaning) => {
+    setWords(words.map(w => w.id === id ? { ...w, meaning: newMeaning, isManuallyEdited: true } : w));
+  };
+
+  const handleMarkLearned = (item) => {
+    setWords(words.filter(w => w.id !== item.id));
+    setLearnedWords([item, ...learnedWords]);
+  };
+
+  const handleUnmarkLearned = (item) => {
+    setLearnedWords(learnedWords.filter(w => w.id !== item.id));
+    setWords([item, ...words]);
   };
 
   const handleIncrement = (id) => {
@@ -338,7 +378,16 @@ export default function App() {
           
           <div className="space-y-3">
             {filteredList.filter(w => w.frequency >= 3).map(w => (
-              <SwipeableCard key={w.id} item={w} isDarkMode={isDarkMode} onDecrement={() => handleDecrement(w.id)} onIncrement={() => handleIncrement(w.id)} />
+              <SwipeableCard 
+                key={w.id} 
+                item={w} 
+                isDarkMode={isDarkMode} 
+                onDecrement={() => handleDecrement(w.id)} 
+                onIncrement={() => handleIncrement(w.id)} 
+                onEdit={handleEditMeaning}
+                onMarkLearned={handleMarkLearned}
+                t={t}
+              />
             ))}
           </div>
 
@@ -349,7 +398,16 @@ export default function App() {
                 {showLowFreq ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               {showLowFreq && <div className="mt-2 space-y-3">{filteredList.filter(w => w.frequency < 3).map(w => (
-                <SwipeableCard key={w.id} item={w} isDarkMode={isDarkMode} onDecrement={() => handleDecrement(w.id)} onIncrement={() => handleIncrement(w.id)} />
+                <SwipeableCard 
+                   key={w.id} 
+                   item={w} 
+                   isDarkMode={isDarkMode} 
+                   onDecrement={() => handleDecrement(w.id)} 
+                   onIncrement={() => handleIncrement(w.id)} 
+                   onEdit={handleEditMeaning}
+                   onMarkLearned={handleMarkLearned}
+                   t={t}
+                />
               ))}</div>}
             </div>
           )}
@@ -365,12 +423,75 @@ export default function App() {
               ))}
             </div>
           )}
-          <div className="relative">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-            <input type="text" placeholder={t.searchPlaceholder} className={`w-full rounded-[1.5rem] py-4 pl-14 pr-6 border-none focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'}`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          <div className="relative flex items-center gap-3">
+            <button 
+              onClick={() => setShowLearnedModal(true)} 
+              className={`p-4 rounded-[1.5rem] shrink-0 transition-colors ${learnedWords.length > 0 ? 'bg-yellow-400 text-yellow-900 shadow-lg shadow-yellow-400/20' : isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}
+            >
+               <GraduationCap size={20} />
+               {learnedWords.length > 0 && (
+                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">{learnedWords.length}</span>
+               )}
+            </button>
+
+            <div className="relative flex-1 flex items-center">
+              <Search className="absolute left-5 text-slate-500 pointer-events-none" size={18} />
+              <input 
+                type="text" 
+                placeholder={t.searchPlaceholder} 
+                className={`w-full rounded-[1.5rem] py-4 pl-14 pr-12 border-none focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-800'}`} 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchSuggestions([]); }}
+                  className="absolute right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 bg-slate-200 dark:bg-slate-700 transition-colors"
+                  aria-label="Cancella ricerca"
+                >
+                  <X size={16} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* POPUP PAROLE IMPARATE */}
+      {showLearnedModal && (
+        <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[60] flex flex-col p-4 pb-20 overflow-y-auto">
+          <div className="max-w-lg w-full mx-auto space-y-6">
+            <div className="flex justify-between items-center bg-yellow-400 p-6 rounded-[2rem] shadow-xl text-yellow-950 mt-8">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/30 p-3 rounded-2xl"><GraduationCap size={28} /></div>
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-tighter">{t.learned}</h2>
+                  <p className="text-xs font-bold opacity-80 uppercase tracking-widest">{learnedWords.length} {t.words}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowLearnedModal(false)} className="bg-yellow-900/10 p-3 rounded-full hover:bg-yellow-900/20 active:scale-90 transition-all"><X size={20} /></button>
+            </div>
+
+            {learnedWords.length === 0 ? (
+               <div className="text-center py-20 text-slate-500 font-bold italic">{t.noLearned}</div>
+            ) : (
+              <div className="space-y-3 pb-10">
+                {learnedWords.map(w => (
+                  <div key={w.id} className={`flex justify-between items-center p-5 rounded-[1.5rem] shadow-lg border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                     <div>
+                        <h3 className={`font-black text-lg capitalize tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{w.term}</h3>
+                        <p className="text-slate-500 text-sm font-medium italic mt-1">"{w.meaning}"</p>
+                     </div>
+                     <button onClick={() => handleUnmarkLearned(w)} className="p-3 bg-slate-100 dark:bg-slate-900 rounded-xl text-slate-400 hover:text-blue-500 active:scale-90 transition-all">
+                       <RotateCcw size={18} />
+                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {activePopupWord && (
         <div className="fixed inset-0 bg-[#0F172A]/90 backdrop-blur-md z-[60] flex items-center justify-center p-6">
@@ -414,8 +535,10 @@ export default function App() {
   );
 }
 
-function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement }) {
+function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement, onEdit, onMarkLearned, t }) {
   const [offset, setOffset] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(item.meaning);
   const startX = useRef(0);
   const isDragging = useRef(false);
   const threshold = 80;
@@ -434,6 +557,13 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement }) {
     if(isDragging.current) setOffset(clientX - startX.current);
   };
 
+  const saveEdit = () => {
+    setIsEditing(false);
+    if (editValue.trim() !== "" && editValue !== item.meaning) {
+      onEdit(item.id, editValue);
+    }
+  };
+
   return (
     <div className={`relative overflow-hidden rounded-[1.8rem] shadow-sm border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-200 border-slate-100'}`}>
       <div className="absolute inset-y-0 right-0 w-full bg-red-600 flex items-center justify-end px-8 text-white transition-all">
@@ -446,7 +576,7 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement }) {
         <div className="flex flex-col items-center"><CheckCircle2 size={24} /><span className="text-[10px] font-black uppercase mt-2 tracking-widest">+1</span></div>
       </div>
       <div 
-        className={`relative p-6 flex justify-between items-center transition-transform duration-200 ease-out touch-pan-y cursor-grab ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}
+        className={`relative p-6 flex flex-col justify-between transition-transform duration-200 ease-out touch-pan-y cursor-grab ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}
         style={{ transform: `translateX(${offset}px)` }}
         onTouchStart={(e) => { startX.current = e.touches[0].clientX; isDragging.current = true; }}
         onTouchMove={(e) => handleMove(e.touches[0].clientX)}
@@ -456,13 +586,51 @@ function SwipeableCard({ item, isDarkMode, onDecrement, onIncrement }) {
         onMouseUp={handleEnd}
         onMouseLeave={handleEnd}
       >
-        <div className="select-none flex-1 pr-4">
-          <h3 className="font-black text-xl capitalize tracking-tight leading-tight">{item.term}</h3>
-          <p className="text-slate-500 text-sm font-medium italic mt-1 leading-tight">"{item.meaning}"</p>
+        <div className="flex justify-between items-center w-full">
+          <div className="select-none flex-1 pr-4">
+            <h3 className="font-black text-xl capitalize tracking-tight leading-tight flex items-center gap-2">
+               {item.term}
+               {item.isManuallyEdited && <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full" title="Modificata manualmente"></span>}
+            </h3>
+            
+            {isEditing ? (
+              <input 
+                 autoFocus
+                 type="text" 
+                 value={editValue} 
+                 onChange={(e) => setEditValue(e.target.value)}
+                 onBlur={saveEdit}
+                 onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                 onMouseDown={(e) => e.stopPropagation()}
+                 onTouchStart={(e) => e.stopPropagation()}
+                 className={`mt-1 w-full text-sm font-medium italic border-b-2 outline-none bg-transparent ${isDarkMode ? 'border-blue-500 text-slate-300' : 'border-blue-500 text-slate-600'}`}
+              />
+            ) : (
+              <p 
+                 onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                 className="text-slate-500 text-sm font-medium italic mt-1 leading-tight cursor-text flex items-center gap-1.5 group"
+              >
+                "{item.meaning}"
+                <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+              </p>
+            )}
+          </div>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border shadow-inner shrink-0 transition-all ${isDarkMode ? 'bg-blue-500/20 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-[#3B82F6] border-blue-100'}`}>
+            {item.frequency}
+          </div>
         </div>
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border shadow-inner shrink-0 transition-all ${isDarkMode ? 'bg-blue-500/20 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-[#3B82F6] border-blue-100'}`}>
-          {item.frequency}
-        </div>
+
+        {/* Pulsante "Segna come imparata" visibile dopo 70 visualizzazioni */}
+        {item.frequency > 70 && (
+           <button 
+             onMouseDown={(e) => e.stopPropagation()}
+             onTouchStart={(e) => e.stopPropagation()}
+             onClick={() => onMarkLearned(item)}
+             className="mt-4 w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-yellow-950 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+           >
+              <GraduationCap size={18} /> {t.markLearned}
+           </button>
+        )}
       </div>
     </div>
   );
